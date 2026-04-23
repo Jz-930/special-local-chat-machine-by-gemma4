@@ -69,9 +69,17 @@ class Vector:
 
                 return ElasticsearchClient()
             case VectorType.CHROMA:
-                from open_webui.retrieval.vector.dbs.chroma import ChromaClient
-
-                return ChromaClient()
+                class DummyClient(VectorDBBase):
+                    def has_collection(self, collection_name): return False
+                    def delete_collection(self, collection_name): pass
+                    def insert(self, collection_name, items): pass
+                    def upsert(self, collection_name, items): pass
+                    def search(self, collection_name, vectors, filter=None, limit=10): return None
+                    def query(self, collection_name, filter, limit=None): return None
+                    def get(self, collection_name): return None
+                    def delete(self, collection_name, ids=None, filter=None): pass
+                    def reset(self): pass
+                return DummyClient()
             case VectorType.ORACLE23AI:
                 from open_webui.retrieval.vector.dbs.oracle23ai import Oracle23aiClient
 

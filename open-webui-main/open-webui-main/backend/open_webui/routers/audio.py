@@ -5,8 +5,12 @@ import os
 import uuid
 import html
 import base64
-from pydub import AudioSegment
-from pydub.silence import split_on_silence
+try:
+    from pydub import AudioSegment
+    from pydub.silence import split_on_silence
+except ImportError:
+    AudioSegment = None
+    split_on_silence = None
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
@@ -80,8 +84,12 @@ SPEECH_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 #
 ##########################################
 
-from pydub import AudioSegment
-from pydub.utils import mediainfo
+try:
+    from pydub import AudioSegment
+    from pydub.utils import mediainfo
+except ImportError:
+    AudioSegment = None
+    mediainfo = None
 
 
 def is_audio_conversion_required(file_path):
