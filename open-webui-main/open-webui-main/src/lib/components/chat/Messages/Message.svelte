@@ -52,7 +52,7 @@
 		: 'max-w-5xl'} mx-auto rounded-lg group relative"
 >
 	<!-- Sequence ID Tag (Ghost Code Line Number Style) -->
-	<div class="absolute left-1 md:-left-6 lg:-left-10 top-5 transform -translate-y-1/2 text-[10px] text-gray-600 font-mono opacity-30 group-hover:opacity-100 transition-opacity select-none hidden sm:block">
+	<div class="absolute right-4 top-0 sm:right-auto sm:left-1 md:-left-6 lg:-left-10 sm:top-5 sm:-translate-y-1/2 text-[10px] text-gray-500 sm:text-gray-600 font-mono opacity-60 sm:opacity-30 group-hover:opacity-100 transition-opacity select-none z-10 pointer-events-none">
 		#{String(idx + 1).padStart(4, '0')}
 	</div>
 	{#if history.messages[messageId]}

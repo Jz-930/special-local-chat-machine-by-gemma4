@@ -139,29 +139,31 @@
 			</div>
 
 			<!-- Body -->
-			<div class="px-6 py-5 flex-1 overflow-y-auto">
+			<div class="px-6 py-5 flex-1 overflow-y-auto custom-scrollbar">
 				<!-- Custom Range Controller -->
 				<div class="mb-5 bg-gray-950 p-4 rounded-xl border border-gray-800 flex flex-col gap-3">
-					<div class="text-xs text-gray-400 font-medium">设定需隐形提取的剧情范畴 <span class="ml-1 text-gray-600">(对照气泡左边缘的编号)</span></div>
+					<div class="text-xs text-gray-400 font-medium">设定需隐形提取的剧情范畴 <span class="ml-1 text-gray-600">(对照气泡右/左边缘的编号)</span></div>
 					
-					<div class="flex items-center gap-3">
-						<div class="flex items-center gap-2 bg-gray-900 border border-gray-700 px-3 py-1.5 rounded-lg text-sm text-gray-300">
-							<span class="text-gray-500">起始</span>
-							<span class="font-mono text-indigo-400">#</span>
-							<input type="number" bind:value={startIdx} min="1" max={totalMessages} class="w-16 bg-transparent outline-none font-mono text-white text-center">
-						</div>
-						<div class="text-gray-600">至</div>
-						<div class="flex items-center gap-2 bg-gray-900 border border-gray-700 px-3 py-1.5 rounded-lg text-sm text-gray-300">
-							<span class="text-gray-500">末尾</span>
-							<span class="font-mono text-indigo-400">#</span>
-							<input type="number" bind:value={endIdx} min="1" max={totalMessages} class="w-16 bg-transparent outline-none font-mono text-white text-center">
+					<div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
+						<div class="flex items-center gap-2">
+							<div class="flex items-center gap-2 bg-gray-900 border border-gray-700 px-3 py-1.5 rounded-lg text-sm text-gray-300">
+								<span class="text-gray-500">起始</span>
+								<span class="font-mono text-indigo-400">#</span>
+								<input type="number" bind:value={startIdx} min="1" max={totalMessages} class="w-12 sm:w-16 bg-transparent outline-none font-mono text-white text-center">
+							</div>
+							<div class="text-gray-600 px-1">至</div>
+							<div class="flex items-center gap-2 bg-gray-900 border border-gray-700 px-3 py-1.5 rounded-lg text-sm text-gray-300">
+								<span class="text-gray-500">末尾</span>
+								<span class="font-mono text-indigo-400">#</span>
+								<input type="number" bind:value={endIdx} min="1" max={totalMessages} class="w-12 sm:w-16 bg-transparent outline-none font-mono text-white text-center">
+							</div>
 						</div>
 						
 						<!-- Quick presets -->
-						<div class="flex flex-wrap gap-2 ml-auto">
-							<button on:click={() => setRange('10')} class="px-2 py-1 text-[11px] bg-gray-800 hover:bg-indigo-900 hover:text-indigo-300 text-gray-400 rounded transition-colors">近10条</button>
-							<button on:click={() => setRange('20')} class="px-2 py-1 text-[11px] bg-gray-800 hover:bg-indigo-900 hover:text-indigo-300 text-gray-400 rounded transition-colors">近20条</button>
-							<button on:click={() => setRange('all')} class="px-2 py-1 text-[11px] bg-gray-800 hover:bg-indigo-900 hover:text-indigo-300 text-gray-400 rounded transition-colors">全文汇总</button>
+						<div class="flex flex-wrap gap-2 mt-1 sm:mt-0 sm:ml-auto">
+							<button on:click={() => setRange('10')} class="px-3 py-1.5 sm:px-2 sm:py-1 text-[11px] sm:text-xs bg-gray-800 hover:bg-indigo-900 text-gray-400 rounded transition-colors whitespace-nowrap">近10条</button>
+							<button on:click={() => setRange('20')} class="px-3 py-1.5 sm:px-2 sm:py-1 text-[11px] sm:text-xs bg-gray-800 hover:bg-indigo-900 text-gray-400 rounded transition-colors whitespace-nowrap">近20条</button>
+							<button on:click={() => setRange('all')} class="px-3 py-1.5 sm:px-2 sm:py-1 text-[11px] sm:text-xs bg-gray-800 hover:bg-indigo-900 text-gray-400 rounded transition-colors whitespace-nowrap">全文汇总</button>
 						</div>
 					</div>
 				</div>
@@ -199,7 +201,7 @@
 				{#if !isGenerating}
 					<button 
 						on:click={summarizeStory}
-						class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/20 flex items-center gap-2 disabled:opacity-50"
+						class="px-5 py-2.5 sm:py-2.5 py-3 w-full sm:w-auto justify-center bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-600/20 flex items-center gap-2 disabled:opacity-50"
 						disabled={totalMessages === 0}
 					>
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
