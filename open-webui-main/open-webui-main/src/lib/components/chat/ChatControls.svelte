@@ -20,7 +20,8 @@
 		settings,
 		showFileNavPath,
 		selectedTerminalId,
-		user
+		user,
+		showOverview
 	} from '$lib/stores';
 
 	import { uploadFile } from '$lib/apis/files';
@@ -96,6 +97,17 @@
 	$: if ($showFileNavPath) {
 		activeTab = 'files';
 		showControls.set(true);
+	}
+
+	// Auto-switch to Overview tab when Ghost Overview is triggered
+	$: if ($showOverview) {
+		activeTab = 'overview';
+		showControls.set(true);
+	}
+
+	// Sync back showOverview when controls are closed or tab changed
+	$: if (!$showControls || activeTab !== 'overview') {
+		if ($showOverview) showOverview.set(false);
 	}
 
 	// Auto-open Files tab when a terminal is selected (suppress panel open when full-screen)

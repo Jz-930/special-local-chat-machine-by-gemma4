@@ -48,7 +48,8 @@
 		showFileNavPath,
 		showFileNavDir,
 		chatRequestQueues,
-		desktopEvent
+		desktopEvent,
+		manualMemoryText
 	} from '$lib/stores';
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
@@ -102,6 +103,8 @@
 	import ChatControls from './ChatControls.svelte';
 	import EventConfirmDialog from '../common/ConfirmDialog.svelte';
 	import Placeholder from './Placeholder.svelte';
+	import MemoryDrawer from './MemoryDrawer.svelte';
+	import GhostSummaryModal from './GhostSummaryModal.svelte';
 	import FilesOverlay from './MessageInput/FilesOverlay.svelte';
 	import NotificationToast from '../NotificationToast.svelte';
 	import Spinner from '../common/Spinner.svelte';
@@ -2199,9 +2202,15 @@
 			true;
 		// Always include system prompt — backend extracts it and prepends to DB messages.
 		// Only temp chats need conversation messages (persisted chats load from DB).
+		let systemPromptContent = `${params?.system ?? $settings?.system ?? ''}`;
+		const manualVault = get(manualMemoryText).trim();
+		if (manualVault !== '') {
+			systemPromptContent = `【小说后台记忆法则：最高优先级 (Vault)】\n${manualVault}\n\n====================\n\n` + systemPromptContent;
+		}
+
 		let messages = [
-			params?.system || $settings.system
-				? { role: 'system', content: `${params?.system ?? $settings?.system ?? ''}` }
+			systemPromptContent.trim().length > 0
+				? { role: 'system', content: systemPromptContent }
 				: undefined
 		].filter(Boolean);
 		if ($temporaryChatEnabled) {
@@ -3091,6 +3100,9 @@
 			</div>
 		</div>
 	{/if}
+
+	<MemoryDrawer />
+	<GhostSummaryModal {history} {selectedModels} />
 </div>
 
 <style>

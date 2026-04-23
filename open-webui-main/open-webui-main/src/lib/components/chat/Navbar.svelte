@@ -13,7 +13,10 @@
 		showControls,
 		showSidebar,
 		temporaryChatEnabled,
-		user
+		user,
+		showMemoryVault,
+		showGhostSummary,
+		showOverview
 	} from '$lib/stores';
 
 	import { slide } from 'svelte/transition';
@@ -171,6 +174,24 @@
 						{/if}
 					{/if}
 
+					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
+						<Tooltip content={'全部分支概览 (Overview)'}>
+							<button
+								class=" flex cursor-pointer px-2 py-2 rounded-xl text-emerald-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								on:click={() => {
+									showOverview.set(!$showOverview);
+								}}
+								aria-label="Toggle Overview"
+							>
+								<div class=" m-auto self-center">
+									<svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+									</svg>
+								</div>
+							</button>
+						</Tooltip>
+					{/if}
+
 					{#if $mobile && !$temporaryChatEnabled && chat && chat.id}
 						<Tooltip content={$i18n.t('New Chat')}>
 							<button
@@ -210,6 +231,42 @@
 								</div>
 							</button>
 						</Menu>
+					{/if}
+
+					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
+						<Tooltip content={'幽灵总结器 (Ghost Summary)'}>
+							<button
+								class=" flex cursor-pointer px-2 py-2 rounded-xl text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								on:click={() => {
+									showGhostSummary.set(!$showGhostSummary);
+								}}
+								aria-label="Ghost Summary"
+							>
+								<div class=" m-auto self-center">
+									<svg xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 20 20" fill="currentColor">
+										<path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd" />
+									</svg>
+								</div>
+							</button>
+						</Tooltip>
+					{/if}
+
+					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
+						<Tooltip content={'设定与记忆面板 (Vault)'}>
+							<button
+								class=" flex cursor-pointer px-2 py-2 rounded-xl text-yellow-500 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								on:click={() => {
+									showMemoryVault.set(!$showMemoryVault);
+								}}
+								aria-label="Memory Vault"
+							>
+								<div class=" m-auto self-center">
+									<svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+									</svg>
+								</div>
+							</button>
+						</Tooltip>
 					{/if}
 
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}

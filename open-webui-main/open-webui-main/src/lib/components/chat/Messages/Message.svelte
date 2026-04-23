@@ -47,10 +47,14 @@
 
 <div
 	role="listitem"
-	class="flex flex-col justify-between px-5 mb-3 w-full {($settings?.widescreenMode ?? null)
+	class="relative flex flex-col justify-between px-5 mb-3 w-full {($settings?.widescreenMode ?? null)
 		? 'max-w-full'
-		: 'max-w-5xl'} mx-auto rounded-lg group"
+		: 'max-w-5xl'} mx-auto rounded-lg group relative"
 >
+	<!-- Sequence ID Tag (Ghost Code Line Number Style) -->
+	<div class="absolute left-1 md:-left-6 lg:-left-10 top-5 transform -translate-y-1/2 text-[10px] text-gray-600 font-mono opacity-30 group-hover:opacity-100 transition-opacity select-none hidden sm:block">
+		#{String(idx + 1).padStart(4, '0')}
+	</div>
 	{#if history.messages[messageId]}
 		{#if history.messages[messageId].role === 'user'}
 			<UserMessage
