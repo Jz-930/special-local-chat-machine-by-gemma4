@@ -10,7 +10,8 @@
 		settings,
 		showArtifacts,
 		showControls,
-		showEmbeds
+		showEmbeds,
+		stripThinkChats
 	} from '$lib/stores';
 	import FloatingButtons from '../ContentRenderer/FloatingButtons.svelte';
 	import { createMessagesList } from '$lib/utils';
@@ -41,6 +42,17 @@
 
 	let contentContainerElement;
 	let floatingButtonsElement;
+
+	let processedContent = '';
+	$: isMessageDone = done || (history && messageId !== history.currentId);
+	$: {
+		if (isMessageDone && ($stripThinkChats[$chatId] ?? true)) {
+			// Visually collapse the <think> blocks in the UI to save DOM parsing overhead
+			processedContent = content.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '> [!NOTE]\n> **🧠 深度思考过程已自动折叠** *(Reasoning Process Collapsed to save memory & performance)*\n\n');
+		} else {
+			processedContent = content;
+		}
+	}
 
 	let sourceIds = [];
 	$: getSourceIds(sources);
@@ -161,8 +173,8 @@
 	<Markdown
 		{id}
 		content={model?.info?.meta?.capabilities?.citations == false
-			? content.replace(/\s*(\[(?:\d+(?:#[^,\]\s]+)?(?:,\s*\d+(?:#[^,\]\s]+)?)*)\])+/g, '')
-			: content}
+			? processedContent.replace(/\s*(\[(?:\d+(?:#[^,\]\s]+)?(?:,\s*\d+(?:#[^,\]\s]+)?)*)\])+/g, '')
+			: processedContent}
 		{model}
 		{save}
 		{preview}

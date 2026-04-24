@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
+	import { getContext, onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
 	import {
@@ -16,7 +16,9 @@
 		user,
 		showMemoryVault,
 		showGhostSummary,
-		showOverview
+		showOverview,
+		stripThinkChats,
+		manualMemoryText
 	} from '$lib/stores';
 
 	import { slide } from 'svelte/transition';
@@ -62,6 +64,38 @@
 
 	let showShareChatModal = false;
 	let showDownloadChatModal = false;
+
+	onMount(() => {
+		try {
+			const stored = localStorage.getItem('stripThinkChats');
+			if (stored) {
+				stripThinkChats.set(JSON.parse(stored));
+			}
+		} catch (e) {}
+	});
+
+	let contextCharCount = 0;
+
+	$: if (history && history.currentId !== undefined) {
+		let total = ($manualMemoryText || '').length + ($settings?.system || '').length + 50; // 50 chars for system prompt overhead
+		let currentMsgId = history.currentId;
+		while (currentMsgId !== null) {
+			const msg = history.messages[currentMsgId];
+			if (msg) {
+				let content = msg.content || '';
+				if (msg.role === 'assistant' && ($stripThinkChats[$chatId] ?? true)) {
+					content = content.replace(/<think>[\s\S]*?(?:<\/think>|$)/g, '');
+				}
+				total += content.length + 20; // 20 chars overhead per message for ChatML role formatting
+				currentMsgId = msg.parentId;
+			} else {
+				break;
+			}
+		}
+		contextCharCount = total;
+	} else {
+		contextCharCount = ($manualMemoryText || '').length;
+	}
 </script>
 
 <ShareChatModal bind:show={showShareChatModal} chatId={$chatId} />
@@ -110,12 +144,31 @@
 				{/if}
 
 				<div
-					class="flex-1 overflow-hidden max-w-full mt-0.5 py-0.5
-			{$showSidebar ? 'ml-1' : ''}
-			"
+					class="flex-1 overflow-hidden max-w-full mt-0.5 py-0.5 {$showSidebar ? 'ml-1' : ''}"
 				>
 					{#if showModelSelector}
-						<ModelSelector bind:selectedModels showSetDefault={!shareEnabled} />
+						<div class="flex items-center gap-2">
+							<ModelSelector bind:selectedModels showSetDefault={!shareEnabled} />
+							
+							{#if contextCharCount > 0}
+								<Tooltip content={`当前上下文载荷估算 (Context Load) \n包含记忆面板与历史对话\n总字符数: ${contextCharCount}`}>
+									<div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-900/40 dark:bg-black/40 border {contextCharCount > 250000 ? 'border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : contextCharCount > 200000 ? 'border-yellow-500/50' : 'border-gray-700/50'} transition-all cursor-default min-w-[140px] ml-1">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0 {contextCharCount > 250000 ? 'text-red-500' : contextCharCount > 200000 ? 'text-yellow-500' : 'text-emerald-500'}" viewBox="0 0 20 20" fill="currentColor">
+											<path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+										</svg>
+										<div class="flex flex-col w-full gap-0.5">
+											<div class="flex justify-between items-center text-[10px] font-bold tracking-wider {contextCharCount > 250000 ? 'text-red-400' : contextCharCount > 200000 ? 'text-yellow-400' : 'text-gray-300'}">
+												<span>MEMORY</span>
+												<span>{(contextCharCount / 10000).toFixed(1)}W / 25W</span>
+											</div>
+											<div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+												<div class="h-full rounded-full {contextCharCount > 250000 ? 'bg-red-500' : contextCharCount > 200000 ? 'bg-yellow-500' : 'bg-emerald-500'} transition-all duration-300" style="width: {Math.min(100, (contextCharCount / 250000) * 100)}%"></div>
+											</div>
+										</div>
+									</div>
+								</Tooltip>
+							{/if}
+						</div>
 					{/if}
 				</div>
 
@@ -210,28 +263,7 @@
 						</Tooltip>
 					{/if}
 
-					{#if shareEnabled && chat && (chat.id || $temporaryChatEnabled)}
-						<Menu
-							{chat}
-							{shareEnabled}
-							shareHandler={() => {
-								showShareChatModal = !showShareChatModal;
-							}}
-							archiveChatHandler={() => {
-								archiveChatHandler(chat.id);
-							}}
-							{moveChatHandler}
-						>
-							<button
-								class="flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
-								id="chat-context-menu-button"
-							>
-								<div class=" m-auto self-center">
-									<EllipsisHorizontal className=" size-5" strokeWidth="1.5" />
-								</div>
-							</button>
-						</Menu>
-					{/if}
+
 
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
 						<Tooltip content={'幽灵总结器 (Ghost Summary)'}>
@@ -246,6 +278,34 @@
 									<svg xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 20 20" fill="currentColor">
 										<path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd" />
 									</svg>
+								</div>
+							</button>
+						</Tooltip>
+					{/if}
+
+					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
+						<Tooltip content={'记忆防爆阀 (Reasoning Stripper: ' + (($stripThinkChats[$chatId] ?? true) ? 'ON' : 'OFF') + ')'}>
+							<button
+								class=" flex cursor-pointer px-2 py-2 rounded-xl text-pink-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								on:click={() => {
+									stripThinkChats.update(chats => {
+										const current = chats[$chatId] ?? true;
+										chats[$chatId] = !current;
+										localStorage.setItem('stripThinkChats', JSON.stringify(chats));
+										return chats;
+									});
+								}}
+								aria-label="Toggle Reasoning Stripper"
+							>
+								<div class=" m-auto self-center relative">
+									<svg xmlns="http://www.w3.org/2000/svg" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
+									</svg>
+									{#if !($stripThinkChats[$chatId] ?? true)}
+										<div class="absolute inset-0 flex items-center justify-center">
+											<div class="w-full h-[2px] bg-red-500 rotate-45 transform"></div>
+										</div>
+									{/if}
 								</div>
 							</button>
 						</Tooltip>
@@ -283,6 +343,29 @@
 								</div>
 							</button>
 						</Tooltip>
+					{/if}
+
+					{#if shareEnabled && chat && (chat.id || $temporaryChatEnabled)}
+						<Menu
+							{chat}
+							{shareEnabled}
+							shareHandler={() => {
+								showShareChatModal = !showShareChatModal;
+							}}
+							archiveChatHandler={() => {
+								archiveChatHandler(chat.id);
+							}}
+							{moveChatHandler}
+						>
+							<button
+								class="flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								id="chat-context-menu-button"
+							>
+								<div class=" m-auto self-center">
+									<EllipsisHorizontal className=" size-5" strokeWidth="1.5" />
+								</div>
+							</button>
+						</Menu>
 					{/if}
 
 					{#if $user !== undefined && $user !== null}

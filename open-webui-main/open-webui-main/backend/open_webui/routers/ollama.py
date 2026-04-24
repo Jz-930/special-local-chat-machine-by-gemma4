@@ -1084,6 +1084,17 @@ async def generate_chat_completion(
         bypass_filter = True
 
     metadata = form_data.pop('metadata', None)
+
+    # --- INJECTED: Ghost Summary Reasoning Stripper ---
+    strip_think = metadata.get('strip_think', True) if metadata else True
+    if strip_think:
+        import re
+        if 'messages' in form_data:
+            for msg in form_data['messages']:
+                if msg.get('role') == 'assistant' and isinstance(msg.get('content'), str):
+                    msg['content'] = re.sub(r'<think>.*?(?:</think>|$)', '', msg['content'], flags=re.DOTALL)
+    # --------------------------------------------------
+
     try:
         form_data = GenerateChatCompletionForm(**form_data)
     except Exception as e:

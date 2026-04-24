@@ -1047,6 +1047,16 @@ async def generate_chat_completion(
     payload = {**form_data}
     metadata = payload.pop('metadata', None)
 
+    # --- INJECTED: Ghost Summary Reasoning Stripper ---
+    strip_think = metadata.get('strip_think', True) if metadata else True
+    if strip_think:
+        import re
+        if 'messages' in payload:
+            for msg in payload['messages']:
+                if msg.get('role') == 'assistant' and isinstance(msg.get('content'), str):
+                    msg['content'] = re.sub(r'<think>.*?(?:</think>|$)', '', msg['content'], flags=re.DOTALL)
+    # --------------------------------------------------
+
     model_id = form_data.get('model')
     model_info = await Models.get_model_by_id(model_id)
 

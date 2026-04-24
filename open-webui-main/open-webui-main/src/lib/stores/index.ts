@@ -37,17 +37,17 @@ export const USAGE_POOL: Writable<null | string[]> = writable(null);
 export const theme = writable('system');
 
 export const shortCodesToEmojis = writable(
-	Object.entries(emojiShortCodes).reduce((acc, [key, value]) => {
+	Object.entries(emojiShortCodes).reduce((acc: Record<string, string>, [key, value]) => {
 		if (typeof value === 'string') {
 			acc[value] = key;
 		} else {
-			for (const v of value) {
+			for (const v of value as string[]) {
 				acc[v] = key;
 			}
 		}
 
 		return acc;
-	}, {})
+	}, {} as Record<string, string>)
 );
 
 export const TTSWorker = writable(null);
@@ -105,6 +105,7 @@ export const showCallOverlay = writable(false);
 export const showMemoryVault = writable(false);
 export const showGhostSummary = writable(false);
 export const manualMemoryText = writable("");
+export const stripThinkChats = writable<Record<string, boolean>>({});
 export const showFileNav = writable(false);
 export const showFileNavPath: Writable<string | null> = writable(null);
 export const showFileNavDir: Writable<string | null> = writable(null);

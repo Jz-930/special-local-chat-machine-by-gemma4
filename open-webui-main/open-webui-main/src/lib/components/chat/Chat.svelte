@@ -49,7 +49,8 @@
 		showFileNavDir,
 		chatRequestQueues,
 		desktopEvent,
-		manualMemoryText
+		manualMemoryText,
+		stripThinkChats
 	} from '$lib/stores';
 
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
@@ -2356,6 +2357,10 @@
 				...(messageIdsMap ? { message_ids: messageIdsMap } : {}),
 				parent_id: userMessage?.parentId ?? null,
 				user_message: userMessage,
+
+				metadata: {
+					strip_think: $stripThinkChats[_chatId] ?? true
+				},
 
 				background_tasks: {
 					...(!$temporaryChatEnabled && !_chatId && (userMessage?.parentId ?? null) === null

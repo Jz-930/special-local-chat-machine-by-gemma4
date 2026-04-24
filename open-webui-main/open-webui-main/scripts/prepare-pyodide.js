@@ -71,8 +71,8 @@ async function downloadPackages() {
 		return;
 	}
 
-	const packageJson = JSON.parse(await readFile('package.json'));
-	const pyodideVersion = packageJson.dependencies.pyodide.replace('^', '');
+	const packageJson = JSON.parse(await readFile('node_modules/pyodide/package.json'));
+	const pyodideVersion = packageJson.version.replace('^', '');
 
 	try {
 		const pyodidePackageJson = JSON.parse(await readFile('static/pyodide/package.json'));
@@ -194,6 +194,16 @@ async function downloadPyPIWheels() {
 	await writeFile(lockPath, JSON.stringify(lockData, null, 2));
 	console.log('Updated pyodide-lock.json with PyPI packages');
 }
+
+try {
+	const nodePyodidePkg = JSON.parse(await readFile('node_modules/pyodide/package.json'));
+	const cachedPyodidePkg = JSON.parse(await readFile('static/pyodide/package.json'));
+	if (nodePyodidePkg.version === cachedPyodidePkg.version) {
+		await access('static/pyodide/pyodide-lock.json');
+		console.log('Pyodide files and lock already exist locally. Skipping redundant fetch.');
+		process.exit(0);
+	}
+} catch (e) {}
 
 initNetworkProxyFromEnv();
 await downloadPackages();
