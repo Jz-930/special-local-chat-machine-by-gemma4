@@ -5,20 +5,32 @@
 	let loaderElement: HTMLElement;
 
 	let observer;
-	let intervalId;
+	let cooldownId;
 
 	onMount(() => {
 		observer = new IntersectionObserver(
 			(entries, observer) => {
 				entries.forEach((entry) => {
 					if (entry.isIntersecting) {
-						intervalId = setInterval(() => {
+						// Single dispatch with cooldown — no flooding
+						if (!cooldownId) {
 							dispatch('visible');
-						}, 100);
-						// dispatch('visible');
-						// observer.unobserve(loaderElement); // Stop observing until content is loaded
+							// Cooldown: prevent re-triggering for 500ms
+							cooldownId = setTimeout(() => {
+								cooldownId = null;
+								// Re-check if still visible after cooldown
+								if (loaderElement) {
+									const rect = loaderElement.getBoundingClientRect();
+									const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+									if (inViewport) {
+										dispatch('visible');
+									}
+								}
+							}, 500);
+						}
 					} else {
-						clearInterval(intervalId);
+						clearTimeout(cooldownId);
+						cooldownId = null;
 					}
 				});
 			},
@@ -37,8 +49,8 @@
 			observer.disconnect();
 		}
 
-		if (intervalId) {
-			clearInterval(intervalId);
+		if (cooldownId) {
+			clearTimeout(cooldownId);
 		}
 	});
 </script>

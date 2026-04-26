@@ -58,11 +58,11 @@
 	export let onSelect = (e) => {};
 
 	export let messagesCount: number | null = 8;
-	let messagesLoading = false;
+	export let messagesLoading = false;
 
 	// Off-screen message unloading. Heights are measured on scroll so spacers
 	// always match real sizes — no scroll jumps, no feedback loops needed.
-	const OVERSCAN = 3;
+	const OVERSCAN = 5;
 	const DEFAULT_HEIGHT = 150;
 	let visibleStart = 0;
 	let visibleEnd = 0;
@@ -160,9 +160,12 @@
 	});
 
 	const loadMoreMessages = async () => {
-		// scroll slightly down to disable continuous loading
 		const element = document.getElementById('messages-container');
-		element.scrollTop = element.scrollTop + 100;
+		if (!element) return;
+
+		// Remember the first currently-visible message so we can anchor after load
+		const anchorMsg = messages[0];
+		const anchorId = anchorMsg?.id;
 
 		messagesLoading = true;
 		messagesCount += 8;
@@ -176,6 +179,20 @@
 		bottomSpacerHeight = 0;
 
 		await tick();
+		await tick(); // Double-tick to ensure DOM is fully rendered
+
+		// Restore scroll position: find the anchor element and align
+		if (anchorId) {
+			const anchorEl = document.getElementById(`message-${anchorId}`);
+			if (anchorEl) {
+				anchorEl.scrollIntoView({ block: 'start' });
+				// Nudge 1px so the Loader is pushed just out of viewport
+				element.scrollTop = Math.max(0, element.scrollTop - 1);
+			}
+		}
+
+		// Measure newly rendered messages before re-enabling culling
+		measureMessageHeights();
 
 		messagesLoading = false;
 	};

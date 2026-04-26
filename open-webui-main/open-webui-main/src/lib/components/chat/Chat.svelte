@@ -127,6 +127,7 @@
 	let autoScroll = true;
 	let processing = '';
 	let messagesContainerElement: HTMLDivElement;
+	let messagesLoading = false;
 
 	let navbarElement;
 
@@ -2921,9 +2922,11 @@
 								id="messages-container"
 								bind:this={messagesContainerElement}
 								on:scroll={(e) => {
-									autoScroll =
-										messagesContainerElement.scrollHeight - messagesContainerElement.scrollTop <=
-										messagesContainerElement.clientHeight + 5;
+									if (!messagesLoading) {
+										autoScroll =
+											messagesContainerElement.scrollHeight - messagesContainerElement.scrollTop <=
+											messagesContainerElement.clientHeight + 5;
+									}
 								}}
 							>
 								<div class=" h-full w-full flex flex-col">
@@ -2931,6 +2934,7 @@
 										chatId={$chatId}
 										bind:history
 										bind:autoScroll
+										bind:messagesLoading
 										bind:prompt
 										setInputText={(text) => {
 											messageInput?.setText(text);

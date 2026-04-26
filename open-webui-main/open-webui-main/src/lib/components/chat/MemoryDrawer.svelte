@@ -3,10 +3,88 @@
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { v4 as uuidv4 } from 'uuid';
+	import { searchNotes, getNotes, createNewNote, updateNoteById, getNoteById } from '$lib/apis/notes';
 
 	let cards = [];
 	let editingCardId = null;
 	let currentChatId = null;
+	let currentNoteId = null;
+	let saveDebounceTimer = null;
+	let isMigratingOrLoading = false;
+
+	// Fragments Library State
+	let globalFragmentsNoteId = null;
+	let globalFragments = [];
+	let showFragmentsView = false;
+	let isLoadingFragments = false;
+
+	async function loadGlobalFragments() {
+		isLoadingFragments = true;
+		try {
+			const allNotes = await getNotes(localStorage.token, true);
+			if (allNotes && Array.isArray(allNotes)) {
+				const listNote = allNotes.find(item => item.title === 'MemoryVault_Global_Fragments');
+				if (listNote) {
+					globalFragmentsNoteId = listNote.id;
+					const fullNote = await getNoteById(localStorage.token, listNote.id);
+					if (fullNote) {
+						globalFragments = unpackCardsFromNoteData(fullNote.data);
+					}
+				} else {
+					globalFragmentsNoteId = null;
+					globalFragments = [];
+				}
+			} else {
+				globalFragmentsNoteId = null;
+				globalFragments = [];
+			}
+		} catch (error) {
+			console.error("Failed to load fragments", error);
+		} finally {
+			isLoadingFragments = false;
+		}
+	}
+
+	async function saveCardToFragments(card, e) {
+		if (e) e.stopPropagation();
+		await loadGlobalFragments();
+		
+		if (globalFragments.find(c => c.content === card.content)) {
+			alert("该卡片内容已在碎片库中！(Already exists)");
+			return;
+		}
+
+		const newFragment = { ...card, id: uuidv4() };
+		const newFragments = [...globalFragments, newFragment];
+		
+		try {
+			if (globalFragmentsNoteId) {
+				await updateNoteById(localStorage.token, globalFragmentsNoteId, {
+					title: 'MemoryVault_Global_Fragments',
+					data: packCardsToNoteData(newFragments)
+				});
+			} else {
+				const res = await createNewNote(localStorage.token, {
+					title: 'MemoryVault_Global_Fragments',
+					data: packCardsToNoteData(newFragments),
+					meta: null,
+					access_grants: []
+				});
+				if (res && res.id) globalFragmentsNoteId = res.id;
+			}
+			globalFragments = newFragments;
+			alert("✅ 成功保存至碎片库！");
+		} catch (error) {
+			console.error("Save to fragments failed", error);
+			alert("保存失败 (Failed to save)");
+		}
+	}
+
+	function importFragment(fragment) {
+		const newCard = { ...fragment, id: uuidv4() };
+		saveCards([...cards, newCard], $chatId);
+		showFragmentsView = false;
+	}
 
 	// Derived total length
 	$: totalLength = cards.reduce((acc, card) => acc + (card.enabled !== false ? (card.content || '').length + (card.title || '').length : 0), 0);
@@ -29,44 +107,138 @@
 		// Sync with the backend payload store
 		manualMemoryText.set(compileCardsToText(cards));
 
+		// Immediate local backup (critical for drafts where targetChatId is '')
 		try {
-			const vaults = JSON.parse(localStorage.getItem('manualMemoryVAULT_cards_byChat') || '{}');
-			vaults[targetChatId || ''] = cards;
-			localStorage.setItem('manualMemoryVAULT_cards_byChat', JSON.stringify(vaults));
+			const cardVaults = JSON.parse(localStorage.getItem('manualMemoryVAULT_cards_byChat') || '{}');
+			cardVaults[targetChatId || ''] = cards;
+			localStorage.setItem('manualMemoryVAULT_cards_byChat', JSON.stringify(cardVaults));
 		} catch (e) {
-			console.error("Failed to save cards", e);
+			console.error("Local save failed", e);
+		}
+
+		clearTimeout(saveDebounceTimer);
+		saveDebounceTimer = setTimeout(() => {
+			if (!isMigratingOrLoading) {
+				syncVaultToBackend(newCards, targetChatId);
+			}
+		}, 1000);
+	}
+
+	// Helper: pack cards into the Notes API data format
+	function packCardsToNoteData(cardsArray) {
+		const serialized = JSON.stringify(cardsArray);
+		return {
+			content: {
+				json: null,
+				html: '',
+				md: serialized
+			}
+		};
+	}
+
+	// Helper: unpack cards from Notes API data format
+	function unpackCardsFromNoteData(noteData) {
+		let data = noteData;
+		if (typeof data === 'string') {
+			try { data = JSON.parse(data); } catch (e) { return []; }
+		}
+		// Try new format: cards serialized as JSON in md field
+		const md = data?.content?.md;
+		if (md && md.trim().startsWith('[')) {
+			try {
+				const parsed = JSON.parse(md);
+				if (Array.isArray(parsed)) return parsed;
+			} catch (e) { /* not valid JSON, fall through */ }
+		}
+		// Fallback: try legacy format where cards were at root (may exist if backend preserved it)
+		if (data?.cards && Array.isArray(data.cards)) {
+			return data.cards;
+		}
+		return [];
+	}
+
+	async function syncVaultToBackend(cardsToSave, targetChatId) {
+		if (!targetChatId) return;
+		const noteTitle = `MemoryVault_${targetChatId}`;
+		const noteData = packCardsToNoteData(cardsToSave);
+		
+		try {
+			if (currentNoteId) {
+				await updateNoteById(localStorage.token, currentNoteId, {
+					title: noteTitle,
+					data: noteData
+				});
+			} else {
+				const res = await createNewNote(localStorage.token, {
+					title: noteTitle,
+					data: noteData,
+					meta: null,
+					access_grants: []
+				});
+				if (res && res.id) {
+					currentNoteId = res.id;
+				}
+			}
+		} catch (error) {
+			console.error("Failed to sync Memory Vault to backend", error);
 		}
 	}
 
-	function migrateAndLoadVault(newId) {
+	async function migrateAndLoadVault(newId) {
+		if (!newId) return;
+		isMigratingOrLoading = true;
+		
 		try {
+			// 1. Check Backend first
+			const allNotes = await getNotes(localStorage.token, true);
+			let backendListNote = null;
+			if (allNotes && Array.isArray(allNotes)) {
+				backendListNote = allNotes.find(item => item.title === `MemoryVault_${newId}`);
+			}
+			
+			if (backendListNote) {
+				// Found in backend list, fetch full note to avoid truncation
+				currentNoteId = backendListNote.id;
+				const fullBackendNote = await getNoteById(localStorage.token, backendListNote.id);
+				const loadedCards = fullBackendNote ? unpackCardsFromNoteData(fullBackendNote.data) : [];
+				if (loadedCards.length > 0) {
+					cards = loadedCards;
+					manualMemoryText.set(compileCardsToText(cards));
+					editingCardId = null;
+					isMigratingOrLoading = false;
+					return;
+				}
+				// Backend note exists but is empty (broken migration) - fall through to localStorage recovery
+			}
+			
+			// 2. Not found in backend (or backend note is empty), look in localStorage
+			if (!currentNoteId) {
+				currentNoteId = backendNote?.id || null;
+			}
 			const cardVaults = JSON.parse(localStorage.getItem('manualMemoryVAULT_cards_byChat') || '{}');
 			
-			// 1. If we just got a real ID, and we had an unsaved draft in the 'new chat' state (""), migrate it over
-			// ONLY migrate if the draft is NOT empty, and the destination doesn't already have a vault!
-			if (newId && newId !== '' && cardVaults[''] && cardVaults[''].length > 0) {
+			// Merge unsaved draft in '' if applicable
+			if (newId !== '' && cardVaults[''] && cardVaults[''].length > 0) {
 				if (!cardVaults[newId] || cardVaults[newId].length === 0) {
-					cardVaults[newId] = cardVaults[''];
+					cardVaults[newId] = [...cardVaults['']];
 				}
-				delete cardVaults[''];
+				// Keep the draft around, just copy it
 				localStorage.setItem('manualMemoryVAULT_cards_byChat', JSON.stringify(cardVaults));
 			}
 
-			let loadedCards = cardVaults[newId || ''];
+			let loadedCards = cardVaults[newId];
 
-			// 2. Legacy Migration from old single-string vault
+			// Legacy Migration from old single-string vault (copy, don't delete original)
 			if (!loadedCards || loadedCards.length === 0) {
 				const legacyVaults = JSON.parse(localStorage.getItem('manualMemoryVAULT_byChat') || '{}');
-				const legacyText = legacyVaults[newId || ''] || '';
+				const legacyText = legacyVaults[newId] || '';
 				if (legacyText.trim() !== '') {
 					loadedCards = [{
 						id: uuidv4(),
 						title: '导入的旧设定',
 						content: legacyText
 					}];
-					// Save migrated cards immediately
-					cardVaults[newId || ''] = loadedCards;
-					localStorage.setItem('manualMemoryVAULT_cards_byChat', JSON.stringify(cardVaults));
+					// Do NOT delete legacy data - keep as backup
 				} else {
 					loadedCards = [];
 				}
@@ -74,10 +246,18 @@
 
 			cards = loadedCards || [];
 			manualMemoryText.set(compileCardsToText(cards));
-			editingCardId = null; // reset view to list
+			editingCardId = null;
+
+			// Sync to backend (duplicate, never delete local source)
+			if (cards.length > 0) {
+				await syncVaultToBackend(cards, newId);
+			}
+
 		} catch (e) {
-			console.error("Failed to parse vault localstorage", e);
+			console.error("Failed to load or migrate vault", e);
 			cards = [];
+		} finally {
+			isMigratingOrLoading = false;
 		}
 	}
 
@@ -128,7 +308,7 @@
 {#if $showMemoryVault}
 	<div 
 		transition:slide={{ duration: 250, axis: 'x' }}
-		class="h-full w-80 bg-gray-900 border-l border-gray-800 flex flex-col shadow-2xl z-50 fixed right-0 top-0 bottom-0"
+		class="h-[100dvh] w-full sm:w-80 bg-gray-900 border-l border-gray-800 flex flex-col shadow-2xl z-50 fixed right-0 top-0 bottom-0"
 	>
 		<!-- Header -->
 		<div class="flex items-center justify-between p-4 border-b border-gray-800 shrink-0">
@@ -151,7 +331,44 @@
 
 		<!-- Body -->
 		<div class="flex-1 overflow-y-auto p-4 custom-scrollbar relative">
-			{#if editingCardId}
+			{#if showFragmentsView}
+				<!-- FRAGMENTS VIEW -->
+				<div class="flex flex-col h-full fade-in" transition:fade={{duration: 150}}>
+					<button on:click={() => showFragmentsView = false} class="flex items-center text-gray-400 hover:text-white mb-4 text-sm transition">
+						<svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+						</svg>
+						返回记忆抽屉 (Back)
+					</button>
+					<div class="text-xs text-gray-400 mb-3 border-b border-gray-700 pb-2">
+						🧩 全局碎片库 (Global Fragments)<br/>
+						点击导入即可快速在当前聊天室应用。
+					</div>
+					
+					{#if isLoadingFragments}
+						<div class="text-center text-gray-500 text-sm mt-10">加载中... (Loading)</div>
+					{:else}
+						{#each globalFragments as fragment (fragment.id)}
+							<div class="bg-gray-800 border border-gray-700 rounded-lg p-3 transition mb-3 hover:border-blue-500/50">
+								<h3 class="text-gray-200 font-medium text-sm truncate mb-1">{fragment.title || '未命名设定'}</h3>
+								<p class="text-xs text-gray-400 line-clamp-3 leading-relaxed whitespace-pre-wrap mb-2">{fragment.content}</p>
+								<button 
+									on:click={() => importFragment(fragment)}
+									class="w-full py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded transition text-xs font-medium flex items-center justify-center gap-1"
+								>
+									<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+									</svg>
+									导入当前对话 (Import)
+								</button>
+							</div>
+						{/each}
+						{#if globalFragments.length === 0}
+							<div class="text-center text-gray-500 text-sm mt-10">碎片库是空的<br/>请返回主列表点击"⭐"收藏卡片</div>
+						{/if}
+					{/if}
+				</div>
+			{:else if editingCardId}
 				<!-- EDIT VIEW -->
 				{@const activeCard = cards.find(c => c.id === editingCardId)}
 				<div class="flex flex-col h-full fade-in" transition:fade={{duration: 150}}>
@@ -202,6 +419,16 @@
 								</div>
 								
 								<button 
+									on:click|stopPropagation={(e) => saveCardToFragments(card, e)} 
+									class="absolute right-7 top-2 text-gray-500 hover:text-yellow-400 opacity-0 group-hover:opacity-100 transition p-1"
+									title="保存至碎片库"
+								>
+									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+									</svg>
+								</button>
+
+								<button 
 									on:click|stopPropagation={() => deleteCard(card.id)} 
 									class="absolute right-2 top-2 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-1"
 									title="删除卡片"
@@ -232,6 +459,16 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 						</svg>
 						新建卡片 (Add Setting)
+					</button>
+
+					<button 
+						on:click={() => { showFragmentsView = true; loadGlobalFragments(); }} 
+						class="w-full mt-1 py-2 border border-gray-700 bg-gray-800 rounded-lg text-gray-400 hover:text-white hover:border-gray-500 transition flex items-center justify-center gap-1 text-sm font-medium shadow-sm"
+					>
+						<svg class="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+						</svg>
+						从碎片库导入
 					</button>
 				</div>
 			{/if}

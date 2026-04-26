@@ -199,7 +199,7 @@
 			</div>
 		{/if}
 
-		<div class="chat-{message.role} w-full min-w-full markdown-prose">
+		<div class="chat-{message.role} w-full min-w-full markdown-prose text-lg leading-loose">
 			{#if edit !== true}
 				{#if message.files}
 					<div

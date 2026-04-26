@@ -214,13 +214,16 @@
 		if (res) {
 			console.log(res);
 			total = res.total;
-			const pageItems = res.items;
+			let pageItems = res.items || [];
 
-			if ((pageItems ?? []).length === 0) {
+			if (pageItems.length === 0) {
 				allItemsLoaded = true;
 			} else {
 				allItemsLoaded = false;
 			}
+
+			// Hide internal system notes from the UI
+			pageItems = pageItems.filter((item) => !(item.title && item.title.startsWith('MemoryVault_')));
 
 			if (items) {
 				const existingIds = new Set(items.map((item) => item.id));

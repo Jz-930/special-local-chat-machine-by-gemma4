@@ -54,7 +54,6 @@
 	import { WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 
 	import ArchivedChatsModal from './ArchivedChatsModal.svelte';
-	import UserMenu from './Sidebar/UserMenu.svelte';
 	import ChatItem from './Sidebar/ChatItem.svelte';
 	import Spinner from '../common/Spinner.svelte';
 	import Loader from '../common/Loader.svelte';
@@ -76,7 +75,7 @@
 	import HotkeyHint from '../common/HotkeyHint.svelte';
 
 	const BREAKPOINT = 768;
-	const DEFAULT_PINNED_ITEMS = ['notes', 'workspace'];
+	const DEFAULT_PINNED_ITEMS = ['notes', 'fragments'];
 
 	let scrollTop = 0;
 
@@ -113,14 +112,13 @@
 					($config?.features?.enable_notes ?? false) &&
 					($user?.role === 'admin' || ($user?.permissions?.features?.notes ?? true))
 				);
-			case 'workspace':
+			case 'fragments':
 				return (
-					$user?.role === 'admin' ||
-					$user?.permissions?.workspace?.models ||
-					$user?.permissions?.workspace?.knowledge ||
-					$user?.permissions?.workspace?.prompts ||
-					$user?.permissions?.workspace?.tools
+					($config?.features?.enable_notes ?? false) &&
+					($user?.role === 'admin' || ($user?.permissions?.features?.notes ?? true))
 				);
+			case 'workspace':
+				return false;
 			case 'automations':
 				return (
 					$config?.features?.enable_automations &&
@@ -141,6 +139,7 @@
 	const getMenuItemMeta = (id) => {
 		const items = {
 			notes: { label: 'Notes', href: '/notes', iconType: 'note' },
+			fragments: { label: '碎片库', href: '/fragments', iconType: 'fragments' },
 			workspace: { label: 'Workspace', href: '/workspace', iconType: 'workspace' },
 			automations: { label: 'Automations', href: '/automations', iconType: 'automations' },
 			calendar: { label: 'Calendar', href: '/calendar', iconType: 'calendar' },
@@ -870,6 +869,10 @@
 									<div class=" self-center flex items-center justify-center size-9">
 										{#if itemId === 'notes'}
 											<Note className="size-4.5" />
+										{:else if itemId === 'fragments'}
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4.5">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+											</svg>
 										{:else if itemId === 'workspace'}
 											<svg
 												xmlns="http://www.w3.org/2000/svg"
@@ -930,42 +933,23 @@
 		<div>
 			<div>
 				<div class=" py-2 flex justify-center items-center">
-					{#if $user !== undefined && $user !== null}
-						<UserMenu
-							role={$user?.role}
-							profile={$config?.features?.enable_user_status ?? true}
-							showActiveUsers={false}
-							on:show={(e) => {
-								if (e.detail === 'archived-chat') {
-									showArchivedChats.set(true);
-								}
-							}}
+					{#if $models && $models.length > 0}
+						<div class="flex items-center justify-center p-2">
+							<span class="relative flex size-3">
+								<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+								<span class="relative inline-flex rounded-full size-3 bg-green-500"></span>
+							</span>
+						</div>
+					{:else}
+						<button
+							class="flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition"
+							on:click={() => { goto('/admin/settings/connections'); }}
+							title={$i18n.t('Manage Connections')}
 						>
-							<div
-								class=" cursor-pointer flex rounded-xl hover:bg-gray-100 dark:hover:bg-gray-850 transition group"
-							>
-								<div class="self-center relative">
-									<img
-										src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
-										class=" size-7 object-cover rounded-full"
-										alt={$i18n.t('Open User Profile Menu')}
-										aria-label={$i18n.t('Open User Profile Menu')}
-									/>
-
-									{#if $config?.features?.enable_user_status}
-										<div class="absolute -bottom-0.5 -right-0.5">
-											<span class="relative flex size-2.5">
-												<span
-													class="relative inline-flex size-2.5 rounded-full {true
-														? 'bg-green-500'
-														: 'bg-gray-300 dark:bg-gray-700'} border-2 border-white dark:border-gray-900"
-												></span>
-											</span>
-										</div>
-									{/if}
-								</div>
-							</div>
-						</UserMenu>
+							<span class="relative flex size-3">
+								<span class="relative inline-flex rounded-full size-3 bg-gray-500"></span>
+							</span>
+						</button>
 					{/if}
 				</div>
 			</div>
@@ -1054,7 +1038,7 @@
 					<div class="px-[0.4375rem] flex justify-center text-gray-800 dark:text-gray-200">
 						<a
 							id="sidebar-new-chat-button"
-							class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
+							class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-3 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
 							href="/"
 							draggable="false"
 							on:click={newChatHandler}
@@ -1075,7 +1059,7 @@
 					<div class="px-[0.4375rem] flex justify-center text-gray-800 dark:text-gray-200">
 						<button
 							id="sidebar-search-button"
-							class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
+							class="group grow flex items-center space-x-3 rounded-2xl px-2.5 py-3 hover:bg-gray-100 dark:hover:bg-gray-900 transition outline-none"
 							on:click={() => {
 								showSearch.set(true);
 							}}
@@ -1103,7 +1087,7 @@
 								>
 									<a
 										id="sidebar-{itemId}-button"
-										class="grow flex items-center space-x-3 rounded-2xl px-2.5 py-2 hover:bg-gray-100 dark:hover:bg-gray-900 transition"
+										class="grow flex items-center space-x-3 rounded-2xl px-2.5 py-3 hover:bg-gray-100 dark:hover:bg-gray-900 transition"
 										href={meta.href}
 										on:click={itemClickHandler}
 										draggable="false"
@@ -1112,6 +1096,10 @@
 										<div class="self-center">
 											{#if itemId === 'notes'}
 												<Note className="size-4.5" strokeWidth="2" />
+											{:else if itemId === 'fragments'}
+												<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-4.5">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M14.25 9.75L16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+												</svg>
 											{:else if itemId === 'workspace'}
 												<svg
 													xmlns="http://www.w3.org/2000/svg"
@@ -1584,44 +1572,24 @@
 					class=" sidebar-bg-gradient-to-t bg-linear-to-t from-gray-50 dark:from-gray-950 to-transparent from-50% pointer-events-none absolute inset-0 -z-10 -mt-6"
 				></div>
 				<div class="flex flex-col font-primary">
-					{#if $user !== undefined && $user !== null}
-						<UserMenu
-							role={$user?.role}
-							profile={$config?.features?.enable_user_status ?? true}
-							showActiveUsers={false}
-							className="w-[calc(var(--sidebar-width)-1rem)]"
-							on:show={(e) => {
-								if (e.detail === 'archived-chat') {
-									showArchivedChats.set(true);
-								}
-							}}
+					{#if $models && $models.length > 0}
+						<div class="flex items-center gap-3 rounded-2xl py-2 px-3 w-full hover:bg-gray-100/50 dark:hover:bg-gray-900/50 transition">
+							<span class="relative flex size-3 shrink-0">
+								<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+								<span class="relative inline-flex rounded-full size-3 bg-green-500"></span>
+							</span>
+							<div class="font-medium text-sm text-green-500 truncate">{$i18n.t('Engine Online')}</div>
+						</div>
+					{:else}
+						<button
+							class="flex items-center gap-3 rounded-2xl py-2 px-3 w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+							on:click={() => { goto('/admin/settings/connections'); }}
 						>
-							<div
-								class=" flex items-center rounded-2xl py-2 px-1.5 w-full hover:bg-gray-100/50 dark:hover:bg-gray-900/50 transition"
-							>
-								<div class=" self-center mr-3 relative">
-									<img
-										src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
-										class=" size-7 object-cover rounded-full"
-										alt={$i18n.t('Open User Profile Menu')}
-										aria-label={$i18n.t('Open User Profile Menu')}
-									/>
-
-									{#if $config?.features?.enable_user_status}
-										<div class="absolute -bottom-0.5 -right-0.5">
-											<span class="relative flex size-2.5">
-												<span
-													class="relative inline-flex size-2.5 rounded-full {true
-														? 'bg-green-500'
-														: 'bg-gray-300 dark:bg-gray-700'} border-2 border-white dark:border-gray-900"
-												></span>
-											</span>
-										</div>
-									{/if}
-								</div>
-								<div class=" self-center font-medium">{$user?.name}</div>
-							</div>
-						</UserMenu>
+							<span class="relative flex size-3 shrink-0">
+								<span class="relative inline-flex rounded-full size-3 bg-gray-500"></span>
+							</span>
+							<div class="font-medium text-sm truncate">管理连接 (Manage Connections)</div>
+						</button>
 					{/if}
 				</div>
 			</div>

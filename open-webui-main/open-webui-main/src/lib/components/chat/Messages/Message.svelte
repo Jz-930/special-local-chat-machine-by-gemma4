@@ -46,10 +46,11 @@
 </script>
 
 <div
+	id="message-{messageId}"
 	role="listitem"
 	class="relative flex flex-col justify-between px-5 mb-3 w-full {($settings?.widescreenMode ?? null)
 		? 'max-w-full'
-		: 'max-w-5xl'} mx-auto rounded-lg group relative"
+		: 'max-w-7xl'} mx-auto rounded-lg group relative"
 >
 	<!-- Sequence ID Tag (Ghost Code Line Number Style) -->
 	<div class="absolute right-4 top-0 sm:right-auto sm:left-1 md:-left-6 lg:-left-10 sm:top-5 sm:-translate-y-1/2 text-[10px] text-gray-500 sm:text-gray-600 font-mono opacity-60 sm:opacity-30 group-hover:opacity-100 transition-opacity select-none z-10 pointer-events-none">

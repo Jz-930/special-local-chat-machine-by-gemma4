@@ -131,7 +131,7 @@
 											aria-hidden="true"
 											draggable="false"
 											on:error={(e) => {
-												e.currentTarget.src = '/favicon.png';
+												e.currentTarget.src = '/logo.webp';
 											}}
 										/>
 									</button>
@@ -208,7 +208,7 @@
 				</div>
 			{/if}
 
-			<div class="text-base font-normal @md:max-w-3xl w-full py-3 {atSelectedModel ? 'mt-2' : ''}">
+			<div class="text-base font-normal @md:max-w-5xl w-full py-3 {atSelectedModel ? 'mt-2' : ''}">
 				<MessageInput
 					bind:this={messageInput}
 					{history}
@@ -241,7 +241,7 @@
 
 	{#if $selectedFolder}
 		<div
-			class="mx-auto px-4 md:max-w-3xl md:px-6 font-primary min-h-62"
+			class="mx-auto px-4 md:max-w-5xl md:px-6 font-primary min-h-62"
 			in:fade={{ duration: 200, delay: 200 }}
 		>
 			<FolderPlaceholder folder={$selectedFolder} />

@@ -16,6 +16,7 @@
 	import Hashtag from '../icons/Hashtag.svelte';
 	import Lock from '../icons/Lock.svelte';
 	import UserAlt from '../icons/UserAlt.svelte';
+	import Cog6 from '../icons/Cog6.svelte';
 	import ChannelInfoModal from './ChannelInfoModal.svelte';
 	import Users from '../icons/Users.svelte';
 	import Pin from '../icons/Pin.svelte';
@@ -211,12 +212,7 @@
 								aria-label="User Menu"
 							>
 								<div class=" self-center">
-									<img
-										src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
-										class="size-6 object-cover rounded-full"
-										alt="User profile"
-										draggable="false"
-									/>
+									<Cog6 className="size-6 text-gray-500 dark:text-gray-400" />
 								</div>
 							</button>
 						</UserMenu>

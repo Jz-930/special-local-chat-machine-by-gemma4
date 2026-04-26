@@ -14,6 +14,7 @@
 	import Notes from '$lib/components/notes/Notes.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Sidebar from '$lib/components/icons/Sidebar.svelte';
+	import Cog6 from '$lib/components/icons/Cog6.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
 
 	let loaded = false;
@@ -95,12 +96,7 @@
 									aria-label="User Menu"
 								>
 									<div class=" self-center">
-										<img
-											src={`${WEBUI_API_BASE_URL}/users/${$user?.id}/profile/image`}
-											class="size-6 object-cover rounded-full"
-											alt="User profile"
-											draggable="false"
-										/>
+										<Cog6 className="size-6 text-gray-500 dark:text-gray-400" />
 									</div>
 								</button>
 							</UserMenu>
