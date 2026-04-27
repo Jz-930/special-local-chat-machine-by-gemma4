@@ -251,20 +251,6 @@
 		}
 	};
 
-	const onSelect = async (e) => {
-		const { type, data } = e;
-
-		if (type === 'prompt') {
-			// Handle prompt selection
-			messageInput?.setText(data, async () => {
-				if (!($settings?.insertSuggestionPrompt ?? false)) {
-					await tick();
-					submitHandler(prompt);
-				}
-			});
-		}
-	};
-
 	$: if (selectedModels && chatIdProp !== '') {
 		saveSessionSelectedModels();
 	}
@@ -2426,6 +2412,19 @@
 				// while the request was in flight (prevents overwriting $chatId
 				// and causing spurious toast notifications / state duplication).
 				if (res.chat_id && $chatId !== res.chat_id && $chatId === _chatId) {
+					stripThinkChats.update((chats) => {
+						const sourceKey = _chatId || '';
+						if (
+							sourceKey !== res.chat_id &&
+							Object.prototype.hasOwnProperty.call(chats, sourceKey) &&
+							!Object.prototype.hasOwnProperty.call(chats, res.chat_id)
+						) {
+							const next = { ...chats, [res.chat_id]: chats[sourceKey] };
+							localStorage.setItem('stripThinkChats', JSON.stringify(next));
+							return next;
+						}
+						return chats;
+					});
 					await chatId.set(res.chat_id);
 					if (!$temporaryChatEnabled) {
 						window.history.replaceState(history.state, '', `/c/${res.chat_id}`);
@@ -2951,7 +2950,6 @@
 										{addMessages}
 										topPadding={true}
 										bottomPadding={files.length > 0}
-										{onSelect}
 									/>
 								</div>
 							</div>
@@ -3058,7 +3056,6 @@
 									toolServers={$toolServers}
 									{stopResponse}
 									{createMessagePair}
-									{onSelect}
 									{onUpload}
 									onChange={(data) => {
 										if (!$temporaryChatEnabled) {

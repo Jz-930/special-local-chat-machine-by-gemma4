@@ -330,7 +330,7 @@
 			}
 		}
 
-		// Version updates check removed for LNPE standalone mode
+		// Version updates check removed for DME standalone mode
 		// Persist showControls: track open/close state separately from saved size
 		// chatControlsSize always retains the last width for openPane()
 		await showControls.set(!$mobile ? localStorage.showControls === 'true' : false);

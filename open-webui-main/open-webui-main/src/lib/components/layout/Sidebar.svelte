@@ -70,6 +70,7 @@
 	import Sidebar from '../icons/Sidebar.svelte';
 	import PinnedModelList from './Sidebar/PinnedModelList.svelte';
 	import Note from '../icons/Note.svelte';
+	import ArchiveBox from '../icons/ArchiveBox.svelte';
 	import Code from '../icons/Code.svelte';
 	import { slide } from 'svelte/transition';
 	import HotkeyHint from '../common/HotkeyHint.svelte';
@@ -1573,23 +1574,41 @@
 				></div>
 				<div class="flex flex-col font-primary">
 					{#if $models && $models.length > 0}
-						<div class="flex items-center gap-3 rounded-2xl py-2 px-3 w-full hover:bg-gray-100/50 dark:hover:bg-gray-900/50 transition">
-							<span class="relative flex size-3 shrink-0">
-								<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-								<span class="relative inline-flex rounded-full size-3 bg-green-500"></span>
-							</span>
-							<div class="font-medium text-sm text-green-500 truncate">{$i18n.t('Engine Online')}</div>
+						<div class="flex items-center justify-between rounded-2xl py-2 px-3 w-full hover:bg-gray-100/50 dark:hover:bg-gray-900/50 transition">
+							<div class="flex items-center gap-3">
+								<span class="relative flex size-3 shrink-0">
+									<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+									<span class="relative inline-flex rounded-full size-3 bg-green-500"></span>
+								</span>
+								<div class="font-medium text-sm text-green-500 truncate">{$i18n.t('Engine Online')}</div>
+							</div>
+							<button
+								class="text-gray-700 hover:text-gray-400 transition cursor-pointer shrink-0"
+								on:click={(e) => { e.stopPropagation(); showArchivedChats.set(true); }}
+								title="归档列表 (Archived Chats)"
+							>
+								<ArchiveBox className="size-4" strokeWidth="1.5" />
+							</button>
 						</div>
 					{:else}
-						<button
-							class="flex items-center gap-3 rounded-2xl py-2 px-3 w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-							on:click={() => { goto('/admin/settings/connections'); }}
-						>
-							<span class="relative flex size-3 shrink-0">
-								<span class="relative inline-flex rounded-full size-3 bg-gray-500"></span>
-							</span>
-							<div class="font-medium text-sm truncate">管理连接 (Manage Connections)</div>
-						</button>
+						<div class="flex items-center justify-between rounded-2xl py-2 px-3 w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+							<button
+								class="flex items-center gap-3 w-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 cursor-pointer"
+								on:click={() => { goto('/admin/settings/connections'); }}
+							>
+								<span class="relative flex size-3 shrink-0">
+									<span class="relative inline-flex rounded-full size-3 bg-gray-500"></span>
+								</span>
+								<div class="font-medium text-sm truncate">管理连接 (Manage Connections)</div>
+							</button>
+							<button
+								class="text-gray-700 hover:text-gray-400 transition cursor-pointer shrink-0"
+								on:click={(e) => { e.stopPropagation(); showArchivedChats.set(true); }}
+								title="归档列表 (Archived Chats)"
+							>
+								<ArchiveBox className="size-4" strokeWidth="1.5" />
+							</button>
+						</div>
 					{/if}
 				</div>
 			</div>

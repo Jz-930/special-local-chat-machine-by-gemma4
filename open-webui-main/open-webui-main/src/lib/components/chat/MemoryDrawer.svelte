@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { v4 as uuidv4 } from 'uuid';
+	import Sortable from 'sortablejs';
 	import { searchNotes, getNotes, createNewNote, updateNoteById, getNoteById } from '$lib/apis/notes';
 
 	let cards = [];
@@ -48,7 +49,7 @@
 	async function saveCardToFragments(card, e) {
 		if (e) e.stopPropagation();
 		await loadGlobalFragments();
-		
+
 		if (globalFragments.find(c => c.content === card.content)) {
 			alert("该卡片内容已在碎片库中！(Already exists)");
 			return;
@@ -56,7 +57,7 @@
 
 		const newFragment = { ...card, id: uuidv4() };
 		const newFragments = [...globalFragments, newFragment];
-		
+
 		try {
 			if (globalFragmentsNoteId) {
 				await updateNoteById(localStorage.token, globalFragmentsNoteId, {
@@ -161,7 +162,7 @@
 		if (!targetChatId) return;
 		const noteTitle = `MemoryVault_${targetChatId}`;
 		const noteData = packCardsToNoteData(cardsToSave);
-		
+
 		try {
 			if (currentNoteId) {
 				await updateNoteById(localStorage.token, currentNoteId, {
@@ -187,7 +188,7 @@
 	async function migrateAndLoadVault(newId) {
 		if (!newId) return;
 		isMigratingOrLoading = true;
-		
+
 		try {
 			// 1. Check Backend first
 			const allNotes = await getNotes(localStorage.token, true);
@@ -195,7 +196,7 @@
 			if (allNotes && Array.isArray(allNotes)) {
 				backendListNote = allNotes.find(item => item.title === `MemoryVault_${newId}`);
 			}
-			
+
 			if (backendListNote) {
 				// Found in backend list, fetch full note to avoid truncation
 				currentNoteId = backendListNote.id;
@@ -210,13 +211,13 @@
 				}
 				// Backend note exists but is empty (broken migration) - fall through to localStorage recovery
 			}
-			
+
 			// 2. Not found in backend (or backend note is empty), look in localStorage
 			if (!currentNoteId) {
-				currentNoteId = backendNote?.id || null;
+				currentNoteId = backendListNote?.id || null;
 			}
 			const cardVaults = JSON.parse(localStorage.getItem('manualMemoryVAULT_cards_byChat') || '{}');
-			
+
 			// Merge unsaved draft in '' if applicable
 			if (newId !== '' && cardVaults[''] && cardVaults[''].length > 0) {
 				if (!cardVaults[newId] || cardVaults[newId].length === 0) {
@@ -255,7 +256,18 @@
 
 		} catch (e) {
 			console.error("Failed to load or migrate vault", e);
-			cards = [];
+			// Fallback to localStorage to prevent data loss on API failure
+			try {
+				const cardVaults = JSON.parse(localStorage.getItem('manualMemoryVAULT_cards_byChat') || '{}');
+				if (cardVaults[newId] && cardVaults[newId].length > 0) {
+					cards = cardVaults[newId];
+					manualMemoryText.set(compileCardsToText(cards));
+				} else {
+					cards = [];
+				}
+			} catch (fallbackError) {
+				cards = [];
+			}
 		} finally {
 			isMigratingOrLoading = false;
 		}
@@ -303,10 +315,47 @@
 		});
 		saveCards(newCards, $chatId);
 	}
+
+	function initSortableCards(node) {
+		const sortable = new Sortable(node, {
+			animation: 150,
+			onUpdate: (event) => {
+				const current = [...cards];
+				const oldIndex = event.oldIndex;
+				const newIndex = event.newIndex;
+				const [moved] = current.splice(oldIndex, 1);
+				current.splice(newIndex, 0, moved);
+				saveCards(current, $chatId);
+			}
+		});
+		return { destroy() { sortable.destroy(); } };
+	}
+
+	function initSortableFragments(node) {
+		const sortable = new Sortable(node, {
+			animation: 150,
+			onUpdate: async (event) => {
+				const current = [...globalFragments];
+				const oldIndex = event.oldIndex;
+				const newIndex = event.newIndex;
+				const [moved] = current.splice(oldIndex, 1);
+				current.splice(newIndex, 0, moved);
+
+				globalFragments = current;
+				if (globalFragmentsNoteId) {
+					await updateNoteById(localStorage.token, globalFragmentsNoteId, {
+						title: 'MemoryVault_Global_Fragments',
+						data: packCardsToNoteData(globalFragments)
+					});
+				}
+			}
+		});
+		return { destroy() { sortable.destroy(); } };
+	}
 </script>
 
 {#if $showMemoryVault}
-	<div 
+	<div
 		transition:slide={{ duration: 250, axis: 'x' }}
 		class="h-[100dvh] w-full sm:w-80 bg-gray-900 border-l border-gray-800 flex flex-col shadow-2xl z-50 fixed right-0 top-0 bottom-0"
 	>
@@ -318,8 +367,8 @@
 				</svg>
 				<span class="text-sm font-semibold text-gray-200">设定面板 (Memory Vault)</span>
 			</div>
-			
-			<button 
+
+			<button
 				on:click={() => showMemoryVault.set(false)}
 				class="text-gray-400 hover:text-white transition-colors p-1"
 			>
@@ -344,25 +393,27 @@
 						🧩 全局碎片库 (Global Fragments)<br/>
 						点击导入即可快速在当前聊天室应用。
 					</div>
-					
+
 					{#if isLoadingFragments}
 						<div class="text-center text-gray-500 text-sm mt-10">加载中... (Loading)</div>
 					{:else}
-						{#each globalFragments as fragment (fragment.id)}
-							<div class="bg-gray-800 border border-gray-700 rounded-lg p-3 transition mb-3 hover:border-blue-500/50">
-								<h3 class="text-gray-200 font-medium text-sm truncate mb-1">{fragment.title || '未命名设定'}</h3>
-								<p class="text-xs text-gray-400 line-clamp-3 leading-relaxed whitespace-pre-wrap mb-2">{fragment.content}</p>
-								<button 
-									on:click={() => importFragment(fragment)}
-									class="w-full py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded transition text-xs font-medium flex items-center justify-center gap-1"
-								>
-									<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-									</svg>
-									导入当前对话 (Import)
-								</button>
-							</div>
-						{/each}
+						<div use:initSortableFragments>
+							{#each globalFragments as fragment (fragment.id)}
+								<div class="bg-gray-800 border border-gray-700 rounded-lg p-3 transition mb-3 hover:border-blue-500/50">
+									<h3 class="text-gray-200 font-medium text-sm truncate mb-1">{fragment.title || '未命名设定'}</h3>
+									<p class="text-xs text-gray-400 line-clamp-3 leading-relaxed whitespace-pre-wrap mb-2">{fragment.content}</p>
+									<button
+										on:click={() => importFragment(fragment)}
+										class="w-full py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded transition text-xs font-medium flex items-center justify-center gap-1"
+									>
+										<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+										</svg>
+										导入当前对话 (Import)
+									</button>
+								</div>
+							{/each}
+						</div>
 						{#if globalFragments.length === 0}
 							<div class="text-center text-gray-500 text-sm mt-10">碎片库是空的<br/>请返回主列表点击"⭐"收藏卡片</div>
 						{/if}
@@ -379,9 +430,9 @@
 						返回卡片列表
 					</button>
 
-					<input 
-						type="text" 
-						value={activeCard?.title || ''} 
+					<input
+						type="text"
+						value={activeCard?.title || ''}
 						on:input={updateEditingCardTitle}
 						placeholder="卡片标题 (如：主角身世)"
 						class="w-full bg-gray-800 text-white rounded-md p-2 mb-3 outline-none border border-gray-700 focus:border-yellow-500 transition text-sm"
@@ -401,49 +452,51 @@
 						这些卡片将被转化为系统提示词，作为最高优先级规则永久注入当前对话中。
 					</div>
 
-					{#each cards as card (card.id)}
-						<div 
-							class="bg-gray-800 border border-gray-700 rounded-lg p-3 transition group cursor-pointer relative {card.enabled !== false ? 'hover:border-yellow-500/50' : 'opacity-40 grayscale hover:opacity-60'}" 
-							on:click={() => editingCardId = card.id}
-						>
-							<div class="flex justify-between items-start mb-1">
-								<div class="flex items-center gap-2 max-w-[85%]">
-									<button 
-										on:click={(e) => toggleCardEnabled(e, card.id)}
-										class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {card.enabled !== false ? 'bg-yellow-500' : 'bg-gray-600'}"
-										title={card.enabled !== false ? '点击卸载 (Unmount)' : '点击挂载 (Mount)'}
-									>
-										<span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {card.enabled !== false ? 'translate-x-3' : 'translate-x-0'}"></span>
-									</button>
-									<h3 class="text-gray-200 font-medium text-sm truncate {card.enabled !== false ? '' : 'line-through text-gray-400'}">{card.title || '未命名设定'}</h3>
-								</div>
-								
-								<button 
-									on:click|stopPropagation={(e) => saveCardToFragments(card, e)} 
-									class="absolute right-7 top-2 text-gray-500 hover:text-yellow-400 opacity-0 group-hover:opacity-100 transition p-1"
-									title="保存至碎片库"
-								>
-									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-									</svg>
-								</button>
+					<div use:initSortableCards class="flex flex-col gap-3">
+						{#each cards as card (card.id)}
+							<div
+								class="bg-gray-800 border border-gray-700 rounded-lg p-3 transition group cursor-pointer relative {card.enabled !== false ? 'hover:border-yellow-500/50' : 'opacity-40 grayscale hover:opacity-60'}"
+								on:click={() => editingCardId = card.id}
+							>
+								<div class="flex justify-between items-start mb-1">
+									<div class="flex items-center gap-2 max-w-[85%]">
+										<button
+											on:click={(e) => toggleCardEnabled(e, card.id)}
+											class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {card.enabled !== false ? 'bg-yellow-500' : 'bg-gray-600'}"
+											title={card.enabled !== false ? '点击卸载 (Unmount)' : '点击挂载 (Mount)'}
+										>
+											<span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {card.enabled !== false ? 'translate-x-3' : 'translate-x-0'}"></span>
+										</button>
+										<h3 class="text-gray-200 font-medium text-sm truncate {card.enabled !== false ? '' : 'line-through text-gray-400'}">{card.title || '未命名设定'}</h3>
+									</div>
 
-								<button 
-									on:click|stopPropagation={() => deleteCard(card.id)} 
-									class="absolute right-2 top-2 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-1"
-									title="删除卡片"
-								>
-									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-									</svg>
-								</button>
+									<button
+										on:click|stopPropagation={(e) => saveCardToFragments(card, e)}
+										class="absolute right-7 top-2 text-gray-500 hover:text-yellow-400 opacity-0 group-hover:opacity-100 transition p-1"
+										title="保存至碎片库"
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+										</svg>
+									</button>
+
+									<button
+										on:click|stopPropagation={() => deleteCard(card.id)}
+										class="absolute right-2 top-2 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition p-1"
+										title="删除卡片"
+									>
+										<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+										</svg>
+									</button>
+								</div>
+								<p class="text-xs text-gray-400 line-clamp-3 leading-relaxed whitespace-pre-wrap">{card.content || '无内容...'}</p>
+								<div class="text-[10px] text-gray-500 mt-2 text-right">
+									{(card.content || '').length} 字 {card.enabled !== false ? '' : '(已卸载)'}
+								</div>
 							</div>
-							<p class="text-xs text-gray-400 line-clamp-3 leading-relaxed whitespace-pre-wrap">{card.content || '无内容...'}</p>
-							<div class="text-[10px] text-gray-500 mt-2 text-right">
-								{(card.content || '').length} 字 {card.enabled !== false ? '' : '(已卸载)'}
-							</div>
-						</div>
-					{/each}
+						{/each}
+					</div>
 
 					{#if cards.length === 0}
 						<div class="text-center text-gray-500 text-sm mt-10">
@@ -451,8 +504,8 @@
 						</div>
 					{/if}
 
-					<button 
-						on:click={addNewCard} 
+					<button
+						on:click={addNewCard}
 						class="w-full mt-2 py-2 border-2 border-dashed border-gray-700 rounded-lg text-gray-400 hover:text-yellow-500 hover:border-yellow-500/50 transition flex items-center justify-center gap-1 text-sm font-medium"
 					>
 						<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -461,8 +514,8 @@
 						新建卡片 (Add Setting)
 					</button>
 
-					<button 
-						on:click={() => { showFragmentsView = true; loadGlobalFragments(); }} 
+					<button
+						on:click={() => { showFragmentsView = true; loadGlobalFragments(); }}
 						class="w-full mt-1 py-2 border border-gray-700 bg-gray-800 rounded-lg text-gray-400 hover:text-white hover:border-gray-500 transition flex items-center justify-center gap-1 text-sm font-medium shadow-sm"
 					>
 						<svg class="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -473,7 +526,7 @@
 				</div>
 			{/if}
 		</div>
-		
+
 		<!-- Footer Stats -->
 		<div class="p-3 text-[11px] text-center text-gray-500 border-t border-gray-800 flex flex-col items-center justify-center gap-1 shrink-0">
 			<div class="flex items-center gap-1 w-full justify-between">
@@ -497,9 +550,9 @@
 
 	<!-- Background Overlay when mobile or to shift focus, optional: -->
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<div 
+	<div
 		transition:fade={{ duration: 250 }}
-		class="fixed inset-0 bg-black/20 z-40" 
+		class="fixed inset-0 bg-black/20 z-40"
 		on:click={() => showMemoryVault.set(false)}
 	></div>
 {/if}

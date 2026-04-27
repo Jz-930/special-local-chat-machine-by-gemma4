@@ -3,12 +3,11 @@
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 
-	import { config, user, models as _models, temporaryChatEnabled } from '$lib/stores';
+	import { user, models as _models, temporaryChatEnabled } from '$lib/stores';
 	import { onMount, getContext } from 'svelte';
 
 	import { blur, fade } from 'svelte/transition';
 
-	import Suggestions from './Suggestions.svelte';
 	import { sanitizeResponseContent } from '$lib/utils';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
@@ -18,8 +17,6 @@
 	export let modelIds = [];
 	export let models = [];
 	export let atSelectedModel;
-
-	export let onSelect = (e) => {};
 
 	let mounted = false;
 	let selectedModelIdx = 0;
@@ -109,18 +106,9 @@
 						</div>
 						{#if models[selectedModelIdx]?.info?.meta?.user}
 							<div class="mt-0.5 text-sm font-normal text-gray-400 dark:text-gray-500">
-								By
-								{#if models[selectedModelIdx]?.info?.meta?.user.community}
-									<a
-										href="https://openwebui.com/m/{models[selectedModelIdx]?.info?.meta?.user
-											.username}"
-										>{models[selectedModelIdx]?.info?.meta?.user.name
-											? models[selectedModelIdx]?.info?.meta?.user.name
-											: `@${models[selectedModelIdx]?.info?.meta?.user.username}`}</a
-									>
-								{:else}
-									{models[selectedModelIdx]?.info?.meta?.user.name}
-								{/if}
+								By {models[selectedModelIdx]?.info?.meta?.user.name
+									? models[selectedModelIdx]?.info?.meta?.user.name
+									: `@${models[selectedModelIdx]?.info?.meta?.user.username}`}
 							</div>
 						{/if}
 					{:else}
@@ -130,17 +118,6 @@
 					{/if}
 				</div>
 			</div>
-		</div>
-
-		<div class=" w-full font-primary" in:fade={{ duration: 200, delay: 300 }}>
-			<Suggestions
-				className="grid grid-cols-2"
-				suggestionPrompts={atSelectedModel?.info?.meta?.suggestion_prompts ??
-					models[selectedModelIdx]?.info?.meta?.suggestion_prompts ??
-					$config?.default_prompt_suggestions ??
-					[]}
-				{onSelect}
-			/>
 		</div>
 	</div>
 {/key}

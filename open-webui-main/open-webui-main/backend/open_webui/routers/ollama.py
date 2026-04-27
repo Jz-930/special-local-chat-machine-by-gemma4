@@ -50,6 +50,7 @@ from open_webui.models.groups import Groups
 from open_webui.utils.access_control import check_model_access
 from open_webui.utils.misc import (
     calculate_sha256,
+    strip_reasoning_content,
 )
 from open_webui.utils.session_pool import (
     cleanup_response,
@@ -1088,11 +1089,10 @@ async def generate_chat_completion(
     # --- INJECTED: Ghost Summary Reasoning Stripper ---
     strip_think = metadata.get('strip_think', True) if metadata else True
     if strip_think:
-        import re
         if 'messages' in form_data:
             for msg in form_data['messages']:
                 if msg.get('role') == 'assistant' and isinstance(msg.get('content'), str):
-                    msg['content'] = re.sub(r'<think>.*?(?:</think>|$)', '', msg['content'], flags=re.DOTALL)
+                    msg['content'] = strip_reasoning_content(msg['content'])
     # --------------------------------------------------
 
     try:

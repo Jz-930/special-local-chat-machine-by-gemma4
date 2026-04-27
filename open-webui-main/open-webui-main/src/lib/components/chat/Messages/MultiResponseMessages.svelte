@@ -16,6 +16,7 @@
 	import Markdown from './Markdown.svelte';
 	import Name from './Name.svelte';
 	import Skeleton from './Skeleton.svelte';
+	import Computer from '$lib/components/icons/Computer.svelte';
 	import localizedFormat from 'dayjs/plugin/localizedFormat';
 	import ProfileImage from './ProfileImage.svelte';
 	import { WEBUI_BASE_URL } from '$lib/constants';
@@ -280,7 +281,8 @@
 											onGroupClick(_messageId, modelIdx);
 										}}
 									>
-										<div class="flex items-center gap-1.5">
+										<div class="flex items-center gap-1.5 text-blue-500">
+											<Computer className="size-3.5" />
 											<div class="-translate-y-[1px]">
 												{model ? `${model.name}` : history.messages[_messageId]?.model}
 											</div>

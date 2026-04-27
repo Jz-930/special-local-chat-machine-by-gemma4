@@ -44,6 +44,7 @@
 	import Skeleton from './Skeleton.svelte';
 	import Image from '$lib/components/common/Image.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import Computer from '$lib/components/icons/Computer.svelte';
 	import RateComment from './RateComment.svelte';
 	import Spinner from '$lib/components/common/Spinner.svelte';
 	import WebSearchResults from './ResponseMessage/WebSearchResults.svelte';
@@ -624,17 +625,15 @@
 		dir={$settings.chatDirection}
 		style="scroll-margin-top: 3rem;"
 	>
-		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 hidden @lg:flex mt-1 `}>
-			<ProfileImage
-				src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${model?.id}&lang=${$i18n.language}`}
-				className={'size-8 assistant-message-profile-image'}
-			/>
+		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 hidden @lg:flex mt-1 flex items-center justify-center size-8 rounded-full bg-blue-500/20 text-blue-500`}>
+			<Computer className="size-5" />
 		</div>
 
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
 				<Tooltip content={model?.name ?? message.model} placement="top-start">
-					<span id="response-message-model-name" class="line-clamp-1 text-black dark:text-white">
+					<span id="response-message-model-name" class="flex items-center gap-1.5 line-clamp-1 text-blue-500 font-medium">
+						<Computer className="size-3.5" />
 						{model?.name ?? message.model}
 					</span>
 				</Tooltip>

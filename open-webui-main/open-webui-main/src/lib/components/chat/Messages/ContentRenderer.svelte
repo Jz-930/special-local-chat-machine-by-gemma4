@@ -14,7 +14,7 @@
 		stripThinkChats
 	} from '$lib/stores';
 	import FloatingButtons from '../ContentRenderer/FloatingButtons.svelte';
-	import { createMessagesList } from '$lib/utils';
+	import { createMessagesList, replaceReasoningContent } from '$lib/utils';
 
 	export let id;
 	export let content;
@@ -43,16 +43,28 @@
 	let contentContainerElement;
 	let floatingButtonsElement;
 
+	const REASONING_COLLAPSED_MARKER = '[[[reasoning-collapsed]]]';
+
 	let processedContent = '';
+	let displayContent = '';
+	let contentParts = [];
 	$: isMessageDone = done || (history && messageId !== history.currentId);
 	$: {
 		if (isMessageDone && ($stripThinkChats[$chatId] ?? true)) {
-			// Visually collapse the <think> blocks in the UI to save DOM parsing overhead
-			processedContent = content.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, '> [!NOTE]\n> **🧠 深度思考过程已自动折叠** *(Reasoning Process Collapsed to save memory & performance)*\n\n');
+			// Visually collapse reasoning blocks in the UI to save DOM parsing overhead.
+			processedContent = replaceReasoningContent(
+				content,
+				`\n\n${REASONING_COLLAPSED_MARKER}\n\n`
+			);
 		} else {
 			processedContent = content;
 		}
 	}
+	$: displayContent =
+		model?.info?.meta?.capabilities?.citations == false
+			? processedContent.replace(/\s*(\[(?:\d+(?:#[^,\]\s]+)?(?:,\s*\d+(?:#[^,\]\s]+)?)*)\])+/g, '')
+			: processedContent;
+	$: contentParts = displayContent.split(REASONING_COLLAPSED_MARKER);
 
 	let sourceIds = [];
 	$: getSourceIds(sources);
@@ -170,43 +182,56 @@
 </script>
 
 <div bind:this={contentContainerElement}>
-	<Markdown
-		{id}
-		content={model?.info?.meta?.capabilities?.citations == false
-			? processedContent.replace(/\s*(\[(?:\d+(?:#[^,\]\s]+)?(?:,\s*\d+(?:#[^,\]\s]+)?)*)\])+/g, '')
-			: processedContent}
-		{model}
-		{save}
-		{preview}
-		{done}
-		{editCodeBlock}
-		{topPadding}
-		{sourceIds}
-		{onSourceClick}
-		{onTaskClick}
-		{onSave}
-		onUpdate={async (token) => {
-			const { lang, text: code } = token;
+	{#each contentParts as part, index}
+		{#if part.trim().length > 0}
+			<Markdown
+				id={`${id}-${index}`}
+				content={part}
+				{model}
+				{save}
+				{preview}
+				{done}
+				{editCodeBlock}
+				topPadding={topPadding && index === 0}
+				{sourceIds}
+				{onSourceClick}
+				{onTaskClick}
+				{onSave}
+				onUpdate={async (token) => {
+					const { lang, text: code } = token;
 
-			if (
-				($settings?.detectArtifacts ?? true) &&
-				(['html', 'svg'].includes(lang) || (lang === 'xml' && code.includes('svg'))) &&
-				!$mobile &&
-				$chatId
-			) {
-				await tick();
-				showArtifacts.set(true);
-				showControls.set(true);
-			}
-		}}
-		onPreview={async (value) => {
-			console.log('Preview', value);
-			await artifactCode.set(value);
-			await showControls.set(true);
-			await showArtifacts.set(true);
-			await showEmbeds.set(false);
-		}}
-	/>
+					if (
+						($settings?.detectArtifacts ?? true) &&
+						(['html', 'svg'].includes(lang) || (lang === 'xml' && code.includes('svg'))) &&
+						!$mobile &&
+						$chatId
+					) {
+						await tick();
+						showArtifacts.set(true);
+						showControls.set(true);
+					}
+				}}
+				onPreview={async (value) => {
+					console.log('Preview', value);
+					await artifactCode.set(value);
+					await showControls.set(true);
+					await showArtifacts.set(true);
+					await showEmbeds.set(false);
+				}}
+			/>
+		{/if}
+
+		{#if index < contentParts.length - 1}
+			<div class="my-1.5 flex">
+				<span
+					class="inline-flex items-center gap-1.5 rounded-full border border-rose-200/70 bg-rose-50/80 px-2.5 py-1 text-[11px] font-medium text-rose-500/90 shadow-sm dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200/80"
+				>
+					<span class="text-[10px] text-amber-400">✦</span>
+					<span>思考已折叠</span>
+				</span>
+			</div>
+		{/if}
+	{/each}
 </div>
 
 {#if floatingButtons}

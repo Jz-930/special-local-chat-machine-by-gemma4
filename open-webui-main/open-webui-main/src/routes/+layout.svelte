@@ -474,7 +474,7 @@
 
 			if ($isLastActiveTab) {
 				if ($settings?.notificationEnabled ?? false) {
-					new Notification(`${data.title} • Open WebUI`, {
+					new Notification(`${data.title} • DME Writing Engine`, {
 						body: timeStr,
 						icon: `${WEBUI_BASE_URL}/static/favicon.png`
 					});
@@ -501,7 +501,7 @@
 
 					if ($isLastActiveTab) {
 						if ($settings?.notificationEnabled ?? false) {
-							new Notification(`${displayTitle} • Open WebUI`, {
+							new Notification(`${displayTitle} • DME Writing Engine`, {
 								body: content,
 								icon: `${WEBUI_BASE_URL}/static/favicon.png`
 							});
@@ -704,7 +704,7 @@
 
 				if ($isLastActiveTab) {
 					if ($settings?.notificationEnabled ?? false) {
-						new Notification(`${title} • Open WebUI`, {
+						new Notification(`${title} • DME Writing Engine`, {
 							body: data?.content,
 							icon: `${WEBUI_API_BASE_URL}/users/${data?.user?.id}/profile/image`
 						});
@@ -765,24 +765,10 @@
 			await goto('/');
 			return;
 		}
-		if (event.type === 'theme:update' && event.data?.theme) {
-			const newTheme = event.data.theme;
-			localStorage.setItem('theme', newTheme);
-			theme.set(newTheme);
-
-			// Apply theme classes (mirrors logic from chat/Settings/General.svelte)
-			const themes = ['dark', 'light', 'oled-dark'];
-			let themeToApply =
-				newTheme === 'oled-dark' ? 'dark' : newTheme === 'her' ? 'light' : newTheme;
-			if (newTheme === 'system') {
-				themeToApply = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-			}
-			themes
-				.filter((e) => e !== themeToApply)
-				.forEach((e) => {
-					e.split(' ').forEach((cls) => document.documentElement.classList.remove(cls));
-				});
-			themeToApply.split(' ').forEach((cls) => document.documentElement.classList.add(cls));
+		if (event.type === 'theme:update') {
+			localStorage.setItem('theme', 'dark');
+			theme.set('dark');
+			document.documentElement.classList.add('dark');
 			return;
 		}
 		if (event.type === 'models:refresh') {
@@ -834,7 +820,7 @@
 
 	const windowMessageEventHandler = async (event) => {
 		if (
-			!['https://openwebui.com', 'https://www.openwebui.com', 'http://localhost:9999'].includes(
+			!['http://localhost:9999'].includes(
 				event.origin
 			)
 		) {
@@ -938,7 +924,7 @@
 		// Call visibility change handler initially to set state on load
 		handleVisibilityChange();
 
-		theme.set(localStorage.theme);
+		theme.set('dark');
 
 		mobile.set(window.innerWidth < BREAKPOINT);
 
@@ -1162,13 +1148,7 @@
 {/if}
 
 <Toaster
-	theme={$theme.includes('dark')
-		? 'dark'
-		: $theme === 'system'
-			? window.matchMedia('(prefers-color-scheme: dark)').matches
-				? 'dark'
-				: 'light'
-			: 'light'}
+	theme="dark"
 	richColors
 	position="top-right"
 	closeButton

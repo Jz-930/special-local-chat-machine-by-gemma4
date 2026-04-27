@@ -12,6 +12,7 @@
 	import Name from './Name.svelte';
 	import ProfileImage from './ProfileImage.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
+	import Computer from '$lib/components/icons/Computer.svelte';
 	import FileItem from '$lib/components/common/FileItem.svelte';
 	import Markdown from './Markdown.svelte';
 	import Image from '$lib/components/common/Image.svelte';
@@ -134,27 +135,25 @@
 	style="scroll-margin-top: 3rem;"
 >
 	{#if !($settings?.chatBubble ?? true)}
-		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 mt-1`}>
-			<ProfileImage
-				src={user?.id
-					? `${WEBUI_API_BASE_URL}/users/${user.id}/profile/image`
-					: `${WEBUI_BASE_URL}/static/favicon.png`}
-				className={'size-8 user-message-profile-image'}
-			/>
+		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 mt-1 flex items-center justify-center size-8 rounded-full bg-green-500/20 text-green-500`}>
+			<Computer className="size-5" />
 		</div>
 	{/if}
 	<div class="flex-auto w-0 max-w-full pl-1">
 		{#if !($settings?.chatBubble ?? true)}
 			<div>
 				<Name>
-					{#if message.user}
-						{$i18n.t('You')}
-						<span class=" text-gray-500 text-sm font-medium">{message?.user ?? ''}</span>
-					{:else if $settings.showUsername || $_user?.name !== user?.name}
-						{user?.name ?? $i18n.t('You')}
-					{:else}
-						{$i18n.t('You')}
-					{/if}
+					<span class="flex items-center gap-1.5 text-green-500">
+						<Computer className="size-3.5" />
+						{#if message.user}
+							{$i18n.t('You')}
+							<span class=" text-green-600/70 text-sm font-medium">{message?.user ?? ''}</span>
+						{:else if $settings.showUsername || $_user?.name !== user?.name}
+							{user?.name ?? $i18n.t('You')}
+						{:else}
+							{$i18n.t('You')}
+						{/if}
+					</span>
 
 					{#if message.timestamp}
 						<div

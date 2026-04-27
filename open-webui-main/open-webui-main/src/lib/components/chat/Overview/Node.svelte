@@ -3,7 +3,7 @@
 	import { Handle, Position, type NodeProps } from '@xyflow/svelte';
 	import { getContext } from 'svelte';
 
-	import ProfileImage from '../Messages/ProfileImage.svelte';
+	import Computer from '$lib/components/icons/Computer.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import Heart from '$lib/components/icons/Heart.svelte';
 
@@ -23,13 +23,12 @@
 	>
 		{#if data.message.role === 'user'}
 			<div class="flex w-full">
-				<ProfileImage
-					src={`${WEBUI_API_BASE_URL}/users/${data.user.id}/profile/image`}
-					className={'size-5 -translate-y-[1px] flex-shrink-0'}
-				/>
-				<div class="ml-2">
+				<div class="flex items-center justify-center size-5 shrink-0 rounded-full bg-green-500/20 text-green-500 -translate-y-[1px]">
+					<Computer className="size-3" />
+				</div>
+				<div class="ml-2 w-full">
 					<div class=" flex justify-between items-center">
-						<div class="text-xs text-black dark:text-white font-medium line-clamp-1">
+						<div class="text-xs text-green-500 font-medium line-clamp-1">
 							{data?.user?.name ?? 'User'}
 						</div>
 					</div>
@@ -43,14 +42,13 @@
 			</div>
 		{:else}
 			<div class="flex w-full">
-				<ProfileImage
-					src={`${WEBUI_API_BASE_URL}/models/model/profile/image?id=${data.model?.id ?? data.message.model}&lang=${$i18n.language}`}
-					className={'size-5 -translate-y-[1px] flex-shrink-0'}
-				/>
+				<div class="flex items-center justify-center size-5 shrink-0 rounded-full bg-blue-500/20 text-blue-500 -translate-y-[1px]">
+					<Computer className="size-3" />
+				</div>
 
-				<div class="ml-2">
-					<div class=" flex justify-between items-center">
-						<div class="text-xs text-black dark:text-white font-medium line-clamp-1">
+				<div class="ml-2 w-full">
+					<div class=" flex justify-between items-center w-full">
+						<div class="text-xs text-blue-500 font-medium line-clamp-1 pr-1">
 							{data?.model?.name ?? data?.message?.model ?? 'Assistant'}
 						</div>
 

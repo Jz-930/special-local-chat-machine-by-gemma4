@@ -98,6 +98,25 @@ export const processResponseContent = (content: string) => {
 	return content.trim();
 };
 
+const REASONING_CONTENT_PATTERNS = [
+	/<details\b(?=[^>]*\btype\s*=\s*["']?reasoning["']?)[^>]*>[\s\S]*?(?:<\/details>|$)/gi,
+	/<(?:think|thinking|reason|reasoning|thought)\b[^>]*>[\s\S]*?(?:<\/(?:think|thinking|reason|reasoning|thought)>|$)/gi,
+	/<\|begin_of_thought\|>[\s\S]*?(?:<\|end_of_thought\|>|$)/gi
+];
+
+export const replaceReasoningContent = (content: string, replacement = '') => {
+	if (typeof content !== 'string') {
+		return '';
+	}
+
+	for (const pattern of REASONING_CONTENT_PATTERNS) {
+		content = content.replace(pattern, replacement);
+	}
+	return content;
+};
+
+export const stripReasoningContent = (content: string) => replaceReasoningContent(content, '');
+
 function isChineseChar(char: string): boolean {
 	return /\p{Script=Han}/u.test(char);
 }

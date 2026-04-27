@@ -18,6 +18,31 @@ from open_webui.env import CHAT_STREAM_RESPONSE_CHUNK_MAX_BUFFER_SIZE
 log = logging.getLogger(__name__)
 
 
+_REASONING_CONTENT_PATTERNS = (
+    re.compile(
+        r'<details\b(?=[^>]*\btype\s*=\s*["\']?reasoning["\']?)[^>]*>.*?(?:</details>|$)',
+        re.IGNORECASE | re.DOTALL,
+    ),
+    re.compile(
+        r'<(?:think|thinking|reason|reasoning|thought)\b[^>]*>.*?(?:</(?:think|thinking|reason|reasoning|thought)>|$)',
+        re.IGNORECASE | re.DOTALL,
+    ),
+    re.compile(
+        r'<\|begin_of_thought\|>.*?(?:<\|end_of_thought\|>|$)',
+        re.IGNORECASE | re.DOTALL,
+    ),
+)
+
+
+def strip_reasoning_content(content: str) -> str:
+    if not isinstance(content, str):
+        return content
+
+    for pattern in _REASONING_CONTENT_PATTERNS:
+        content = pattern.sub('', content)
+    return content
+
+
 def deep_update(d, u):
     for k, v in u.items():
         if isinstance(v, collections.abc.Mapping):

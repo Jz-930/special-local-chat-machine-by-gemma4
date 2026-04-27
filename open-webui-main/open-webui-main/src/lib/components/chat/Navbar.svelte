@@ -45,6 +45,7 @@
 	import Knobs from '../icons/Knobs.svelte';
 	import Cog6 from '../icons/Cog6.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
+	import { stripReasoningContent } from '$lib/utils';
 
 	const i18n = getContext('i18n');
 
@@ -103,9 +104,14 @@
 		while (currentMsgId !== null) {
 			const msg = history.messages[currentMsgId];
 			if (msg) {
-				let content = msg.content || '';
+				let content =
+					typeof msg.content === 'string'
+						? msg.content
+						: Array.isArray(msg.content)
+							? msg.content.map((part: { text?: string }) => part?.text ?? '').join('')
+							: '';
 				if (msg.role === 'assistant' && ($stripThinkChats[$chatId] ?? true)) {
-					content = content.replace(/<think>[\s\S]*?(?:<\/think>|$)/g, '');
+					content = stripReasoningContent(content);
 				}
 				totalHistory += content.length + 20; // 20 chars overhead per message for ChatML role formatting
 				currentMsgId = msg.parentId;

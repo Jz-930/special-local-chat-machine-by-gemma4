@@ -621,9 +621,8 @@ if LOG_FORMAT != 'json':
  ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝     ╚══╝╚══╝ ╚══════╝╚═════╝  ╚═════╝ ╚═╝
 
 
-v{VERSION} - building the best AI user interface.
+v{VERSION} - DME Writing Engine.
 {f'Commit: {WEBUI_BUILD_HASH}' if WEBUI_BUILD_HASH != 'dev-build' else ''}
-https://github.com/open-webui/open-webui
 """)
 
 
@@ -743,7 +742,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title='Open WebUI',
+    title='DME Writing Engine',
     docs_url='/docs' if ENV == 'dev' else None,
     openapi_url='/openapi.json' if ENV == 'dev' else None,
     redoc_url=None,
@@ -753,7 +752,7 @@ app = FastAPI(
 # Used by readiness checks to gate traffic until startup work is done.
 app.state.startup_complete = False
 
-# For Open WebUI OIDC/OAuth2
+# For DME Writing Engine OIDC/OAuth2
 oauth_manager = OAuthManager(app)
 app.state.oauth_manager = oauth_manager
 
@@ -1562,6 +1561,17 @@ async def chat_completion(
     model_id = form_data.get('model', None)
     model_item = form_data.pop('model_item', {})
     tasks = form_data.pop('background_tasks', None)
+    incoming_metadata = form_data.pop('metadata', {}) or {}
+    if not isinstance(incoming_metadata, dict):
+        incoming_metadata = {}
+
+    incoming_strip_think = incoming_metadata.get('strip_think', True)
+    if isinstance(incoming_strip_think, str):
+        incoming_strip_think = incoming_strip_think.strip().lower() not in ('false', '0', 'off', 'no')
+    elif incoming_strip_think is None:
+        incoming_strip_think = True
+    else:
+        incoming_strip_think = bool(incoming_strip_think)
 
     metadata = {}
     try:
@@ -1654,6 +1664,7 @@ async def chat_completion(
             'files': form_data.get('files', None),
             'features': form_data.get('features', {}),
             'variables': form_data.get('variables', {}),
+            'strip_think': incoming_strip_think,
             'model': model,
             'direct': model_item.get('direct', False),
             'params': {
@@ -2043,7 +2054,7 @@ async def generate_messages(
     pipeline, then converts the response back to Anthropic Messages format.
 
     Supports both streaming and non-streaming requests.
-    All models configured in Open WebUI are accessible via this endpoint.
+    All models configured in DME Writing Engine are accessible via this endpoint.
 
     Authentication: Supports both standard Authorization header and
     Anthropic's x-api-key header (via middleware translation).
@@ -2389,7 +2400,7 @@ async def get_app_changelog():
 @app.get('/api/usage')
 async def get_current_usage(user=Depends(get_verified_user)):
     """
-    Get current usage statistics for Open WebUI.
+    Get current usage statistics for DME Writing Engine.
     This is an experimental endpoint and subject to change.
     """
     try:
