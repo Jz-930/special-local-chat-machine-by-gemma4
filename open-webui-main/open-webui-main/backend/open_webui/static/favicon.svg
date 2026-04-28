@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DME">
+  <rect x="10" y="10" width="492" height="492" rx="82" fill="#fff"/>
+  <text x="256" y="292" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="148" font-weight="700" fill="#121212">DME</text>
+  <circle cx="402" cy="142" r="28" fill="#eb2b2b"/>
+</svg>
