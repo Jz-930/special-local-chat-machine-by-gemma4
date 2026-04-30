@@ -111,6 +111,7 @@
 	import MessageInput from '$lib/components/chat/MessageInput.svelte';
 	import Messages from '$lib/components/chat/Messages.svelte';
 	import Navbar from '$lib/components/chat/Navbar.svelte';
+	import ContextTokenPanel from './ContextTokenPanel.svelte';
 	import ChatControls from './ChatControls.svelte';
 	import EventConfirmDialog from '../common/ConfirmDialog.svelte';
 	import Placeholder from './Placeholder.svelte';
@@ -3015,6 +3016,8 @@
 									/>
 								</div>
 							</div>
+
+							<ContextTokenPanel {history} {selectedModels} className="mb-2" />
 
 							<div class=" pb-2 {dragged ? 'z-0' : 'z-10'}">
 								<MessageInput

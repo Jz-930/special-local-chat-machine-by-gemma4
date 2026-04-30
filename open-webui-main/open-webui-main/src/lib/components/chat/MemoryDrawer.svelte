@@ -1,4 +1,5 @@
 <script>
+	// @ts-nocheck
 	import { manualMemoryText, showMemoryVault, chatId } from '$lib/stores';
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
@@ -6,6 +7,13 @@
 	import Sortable from 'sortablejs';
 	import { searchNotes, getNotes, createNewNote, updateNoteById, getNoteById } from '$lib/apis/notes';
 	import { estimateTextTokens, getContextTokenProfile } from '$lib/utils/contextTokens';
+	import {
+		FRAGMENTS_NOTE_TITLE,
+		normalizeFragmentLibrary,
+		packFragmentLibraryToNoteData,
+		unpackFragmentLibraryFromNoteData,
+		upsertFragmentsWithExactOverwrite
+	} from '$lib/utils/memoryVault';
 
 	let cards = [];
 	let editingCardId = null;
@@ -17,28 +25,35 @@
 
 	// Fragments Library State
 	let globalFragmentsNoteId = null;
+	let globalFragmentsLibrary = { version: 2, groups: [], fragments: [] };
 	let globalFragments = [];
 	let showFragmentsView = false;
 	let isLoadingFragments = false;
+	let selectedFragmentIds = new Set();
+	let cardSelectionMode = false;
+	let selectedCardIds = new Set();
 
 	async function loadGlobalFragments() {
 		isLoadingFragments = true;
 		try {
 			const allNotes = await getNotes(localStorage.token, true);
 			if (allNotes && Array.isArray(allNotes)) {
-				const listNote = allNotes.find(item => item.title === 'MemoryVault_Global_Fragments');
+				const listNote = allNotes.find(item => item.title === FRAGMENTS_NOTE_TITLE);
 				if (listNote) {
 					globalFragmentsNoteId = listNote.id;
 					const fullNote = await getNoteById(localStorage.token, listNote.id);
 					if (fullNote) {
-						globalFragments = unpackCardsFromNoteData(fullNote.data);
+						globalFragmentsLibrary = unpackFragmentLibraryFromNoteData(fullNote.data);
+						globalFragments = globalFragmentsLibrary.fragments;
 					}
 				} else {
 					globalFragmentsNoteId = null;
+					globalFragmentsLibrary = { version: 2, groups: [], fragments: [] };
 					globalFragments = [];
 				}
 			} else {
 				globalFragmentsNoteId = null;
+				globalFragmentsLibrary = { version: 2, groups: [], fragments: [] };
 				globalFragments = [];
 			}
 		} catch (error) {
@@ -50,43 +65,105 @@
 
 	async function saveCardToFragments(card, e) {
 		if (e) e.stopPropagation();
+		await saveCardsToFragments([card], e);
+	}
+
+	async function saveCardsToFragments(cardsToSave, e) {
+		if (e) e.stopPropagation();
+		if (!cardsToSave || cardsToSave.length === 0) return;
 		await loadGlobalFragments();
 
-		if (globalFragments.find(c => c.content === card.content)) {
-			alert("该卡片内容已在碎片库中！(Already exists)");
-			return;
-		}
-
-		const newFragment = { ...card, id: uuidv4() };
-		const newFragments = [...globalFragments, newFragment];
+		const { library: nextLibrary, report } = upsertFragmentsWithExactOverwrite(
+			globalFragmentsLibrary,
+			cardsToSave.map((card) => ({
+				...card,
+				source_chat_id: $chatId,
+				source_card_id: card.id
+			}))
+		);
 
 		try {
-			if (globalFragmentsNoteId) {
-				await updateNoteById(localStorage.token, globalFragmentsNoteId, {
-					title: 'MemoryVault_Global_Fragments',
-					data: packCardsToNoteData(newFragments)
-				});
-			} else {
-				const res = await createNewNote(localStorage.token, {
-					title: 'MemoryVault_Global_Fragments',
-					data: packCardsToNoteData(newFragments),
-					meta: null,
-					access_grants: []
-				});
-				if (res && res.id) globalFragmentsNoteId = res.id;
-			}
-			globalFragments = newFragments;
-			alert("✅ 成功保存至碎片库！");
+			await persistGlobalFragments(nextLibrary);
+			selectedCardIds = new Set();
+			cardSelectionMode = false;
+			alert(`已保存到碎片库：新增 ${report.inserted}，完全一致覆盖 ${report.overwritten}。`);
 		} catch (error) {
 			console.error("Save to fragments failed", error);
 			alert("保存失败 (Failed to save)");
 		}
 	}
 
+	async function persistGlobalFragments(nextLibrary) {
+		const normalized = normalizeFragmentLibrary(nextLibrary);
+		if (globalFragmentsNoteId) {
+			await updateNoteById(localStorage.token, globalFragmentsNoteId, {
+				title: FRAGMENTS_NOTE_TITLE,
+				data: packFragmentLibraryToNoteData(normalized)
+			});
+		} else {
+			const res = await createNewNote(localStorage.token, {
+				title: FRAGMENTS_NOTE_TITLE,
+				data: packFragmentLibraryToNoteData(normalized),
+				meta: null,
+				access_grants: []
+			});
+			if (res && res.id) globalFragmentsNoteId = res.id;
+		}
+		globalFragmentsLibrary = normalized;
+		globalFragments = normalized.fragments;
+	}
+
 	function importFragment(fragment) {
 		const newCard = { ...fragment, id: uuidv4() };
 		saveCards([...cards, newCard], $chatId);
 		showFragmentsView = false;
+	}
+
+	function importSelectedFragments() {
+		const selected = globalFragments.filter((fragment) => selectedFragmentIds.has(fragment.id));
+		if (selected.length === 0) return;
+		const newCards = selected.map((fragment) => ({
+			...fragment,
+			id: uuidv4(),
+			source_fragment_id: fragment.id
+		}));
+		saveCards([...cards, ...newCards], $chatId);
+		selectedFragmentIds = new Set();
+		showFragmentsView = false;
+	}
+
+	function toggleFragmentSelection(id, e) {
+		if (e) e.stopPropagation();
+		const next = new Set(selectedFragmentIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedFragmentIds = next;
+	}
+
+	function toggleCardSelection(id, e) {
+		if (e) e.stopPropagation();
+		const next = new Set(selectedCardIds);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		selectedCardIds = next;
+	}
+
+	function selectAllCards() {
+		selectedCardIds = new Set(cards.map((card) => card.id));
+		cardSelectionMode = true;
+	}
+
+	function deleteSelectedCards() {
+		if (selectedCardIds.size === 0) return;
+		if (!confirm(`确定删除选中的 ${selectedCardIds.size} 张卡片吗？`)) return;
+		saveCards(cards.filter((card) => !selectedCardIds.has(card.id)), $chatId);
+		selectedCardIds = new Set();
+		cardSelectionMode = false;
+	}
+
+	function saveSelectedCardsToFragments(e) {
+		const selected = cards.filter((card) => selectedCardIds.has(card.id));
+		saveCardsToFragments(selected, e);
 	}
 
 	let tokenProfile = getContextTokenProfile();
@@ -353,13 +430,10 @@
 				const [moved] = current.splice(oldIndex, 1);
 				current.splice(newIndex, 0, moved);
 
-				globalFragments = current;
-				if (globalFragmentsNoteId) {
-					await updateNoteById(localStorage.token, globalFragmentsNoteId, {
-						title: 'MemoryVault_Global_Fragments',
-						data: packCardsToNoteData(globalFragments)
-					});
-				}
+				await persistGlobalFragments({
+					...globalFragmentsLibrary,
+					fragments: current.map((fragment, order) => ({ ...fragment, order }))
+				});
 			}
 		});
 		return { destroy() { sortable.destroy(); } };
@@ -402,17 +476,51 @@
 						返回记忆抽屉 (Back)
 					</button>
 					<div class="text-xs text-gray-400 mb-3 border-b border-gray-700 pb-2">
-						🧩 全局碎片库 (Global Fragments)<br/>
-						点击导入即可快速在当前聊天室应用。
+						全局碎片库 (Global Fragments)<br/>
+						点击单条导入，或多选后批量导入当前对话。
 					</div>
 
 					{#if isLoadingFragments}
 						<div class="text-center text-gray-500 text-sm mt-10">加载中... (Loading)</div>
 					{:else}
+						<div class="flex flex-wrap items-center gap-2 mb-3">
+							<button
+								class="px-2 py-1 rounded border border-gray-700 text-xs text-gray-300 hover:border-gray-500"
+								on:click={() => selectedFragmentIds = new Set(globalFragments.map((fragment) => fragment.id))}
+							>
+								全选
+							</button>
+							<button
+								class="px-2 py-1 rounded border border-gray-700 text-xs text-gray-300 hover:border-gray-500"
+								on:click={() => selectedFragmentIds = new Set()}
+							>
+								清空选择
+							</button>
+							<button
+								class="px-2 py-1 rounded bg-blue-600 text-white text-xs disabled:opacity-40"
+								disabled={selectedFragmentIds.size === 0}
+								on:click={importSelectedFragments}
+							>
+								导入所选 {selectedFragmentIds.size}
+							</button>
+						</div>
 						<div use:initSortableFragments>
 							{#each globalFragments as fragment (fragment.id)}
 								<div class="bg-gray-800 border border-gray-700 rounded-lg p-3 transition mb-3 hover:border-blue-500/50">
-									<h3 class="text-gray-200 font-medium text-sm truncate mb-1">{fragment.title || '未命名设定'}</h3>
+									<div class="flex items-start gap-2 mb-1">
+										<input
+											type="checkbox"
+											class="mt-0.5"
+											checked={selectedFragmentIds.has(fragment.id)}
+											on:click={(e) => toggleFragmentSelection(fragment.id, e)}
+										/>
+										<div class="min-w-0 flex-1">
+											<h3 class="text-gray-200 font-medium text-sm truncate">{fragment.title || '未命名设定'}</h3>
+											<div class="text-[10px] text-gray-500">
+												{globalFragmentsLibrary.groups.find((group) => group.id === fragment.group_id)?.name || '未分组'}
+											</div>
+										</div>
+									</div>
 									<p class="text-xs text-gray-400 line-clamp-3 leading-relaxed whitespace-pre-wrap mb-2">{fragment.content}</p>
 									<button
 										on:click={() => importFragment(fragment)}
@@ -463,15 +571,55 @@
 					<div class="text-xs text-gray-500 mb-1">
 						这些卡片将被转化为系统提示词，作为最高优先级规则永久注入当前对话中。
 					</div>
+					<div class="flex flex-wrap items-center gap-2">
+						<button
+							class="px-2 py-1 rounded border border-gray-700 text-xs text-gray-300 hover:border-gray-500"
+							on:click={() => {
+								cardSelectionMode = !cardSelectionMode;
+								if (!cardSelectionMode) selectedCardIds = new Set();
+							}}
+						>
+							{cardSelectionMode ? '退出多选' : '多选'}
+						</button>
+						{#if cardSelectionMode}
+							<button class="px-2 py-1 rounded border border-gray-700 text-xs text-gray-300 hover:border-gray-500" on:click={selectAllCards}>
+								全选
+							</button>
+							<button
+								class="px-2 py-1 rounded bg-yellow-600/80 text-white text-xs disabled:opacity-40"
+								disabled={selectedCardIds.size === 0}
+								on:click={saveSelectedCardsToFragments}
+							>
+								保存所选到碎片库 {selectedCardIds.size}
+							</button>
+							<button
+								class="px-2 py-1 rounded bg-red-600 text-white text-xs disabled:opacity-40"
+								disabled={selectedCardIds.size === 0}
+								on:click={deleteSelectedCards}
+							>
+								删除所选
+							</button>
+						{/if}
+					</div>
 
 					<div use:initSortableCards class="flex flex-col gap-3">
 						{#each cards as card (card.id)}
 							<div
 								class="bg-gray-800 border border-gray-700 rounded-lg p-3 transition group cursor-pointer relative {card.enabled !== false ? 'hover:border-yellow-500/50' : 'opacity-40 grayscale hover:opacity-60'}"
-								on:click={() => editingCardId = card.id}
+								on:click={(e) => {
+									if (cardSelectionMode) toggleCardSelection(card.id, e);
+									else editingCardId = card.id;
+								}}
 							>
 								<div class="flex justify-between items-start mb-1">
 									<div class="flex items-center gap-2 max-w-[85%]">
+										{#if cardSelectionMode}
+											<input
+												type="checkbox"
+												checked={selectedCardIds.has(card.id)}
+												on:click={(e) => toggleCardSelection(card.id, e)}
+											/>
+										{/if}
 										<button
 											on:click={(e) => toggleCardEnabled(e, card.id)}
 											class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {card.enabled !== false ? 'bg-yellow-500' : 'bg-gray-600'}"

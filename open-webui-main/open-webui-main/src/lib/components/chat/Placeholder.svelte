@@ -24,6 +24,7 @@
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
+	import ContextTokenPanel from './ContextTokenPanel.svelte';
 	import MessageInput from './MessageInput.svelte';
 	import FolderPlaceholder from './Placeholder/FolderPlaceholder.svelte';
 	import FolderTitle from './Placeholder/FolderTitle.svelte';
@@ -197,6 +198,8 @@
 			{/if}
 
 			<div class="text-base font-normal @md:max-w-5xl w-full py-3 {atSelectedModel ? 'mt-2' : ''}">
+				<ContextTokenPanel {history} {selectedModels} className="mb-2" />
+
 				<MessageInput
 					bind:this={messageInput}
 					{history}

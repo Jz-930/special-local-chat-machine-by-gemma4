@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { getContext, onMount } from 'svelte';
-	import { toast } from 'svelte-sonner';
 
 	import {
 		WEBUI_NAME,
@@ -17,8 +16,7 @@
 		showMemoryVault,
 		showGhostSummary,
 		showOverview,
-		stripThinkChats,
-		manualMemoryText
+		stripThinkChats
 	} from '$lib/stores';
 
 	import { slide } from 'svelte/transition';
@@ -45,13 +43,6 @@
 	import Knobs from '../icons/Knobs.svelte';
 	import Cog6 from '../icons/Cog6.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
-	import { createMessagesList, stripReasoningContent } from '$lib/utils';
-	import {
-		estimateContextTokens,
-		getContextSettingsHash,
-		getStoredMaxContextTokens,
-		parseContextBudgetToTokens
-	} from '$lib/utils/contextTokens';
 
 	const i18n = getContext('i18n');
 
@@ -79,65 +70,8 @@
 			if (stored) {
 				stripThinkChats.set(JSON.parse(stored));
 			}
-			maxContextTokens = getStoredMaxContextTokens();
 		} catch (e) {}
 	});
-
-	let maxContextTokens = 250000;
-
-	let contextTokenCount = 0;
-	let vaultTokenCount = 0;
-	let historyTokenCount = 0;
-	let selectedContextModelId = '';
-
-	$: if (history && history.currentId !== undefined) {
-		selectedContextModelId = Array.isArray(selectedModels) ? (selectedModels[0] ?? '') : (selectedModels ?? '');
-		const stripReasoning = $stripThinkChats[$chatId] ?? true;
-		const estimate = estimateContextTokens({
-			manualMemoryText: $manualMemoryText || '',
-			systemPrompt: $settings?.system ?? '',
-			messages: createMessagesList(history, history.currentId),
-			modelId: selectedContextModelId,
-			chatId: $chatId,
-			stripReasoning,
-			stripReasoningContent,
-			settingsHash: getContextSettingsHash({
-				stripReasoning,
-				memory: $settings?.memory === true
-			})
-		});
-		vaultTokenCount = estimate.vault + estimate.system;
-		historyTokenCount = estimate.history;
-		contextTokenCount = estimate.total;
-	} else {
-		selectedContextModelId = Array.isArray(selectedModels) ? (selectedModels[0] ?? '') : (selectedModels ?? '');
-		const estimate = estimateContextTokens({
-			manualMemoryText: $manualMemoryText || '',
-			systemPrompt: $settings?.system ?? '',
-			messages: [],
-			modelId: selectedContextModelId,
-			chatId: $chatId,
-			stripReasoning: $stripThinkChats[$chatId] ?? true
-		});
-		vaultTokenCount = estimate.vault + estimate.system;
-		historyTokenCount = 0;
-		contextTokenCount = estimate.total;
-	}
-
-	let showContextStats = false;
-	let newMaxContextInput = '';
-
-	function handleUpdateMaxContext() {
-		const parsed = parseContextBudgetToTokens(newMaxContextInput, selectedContextModelId);
-		if (parsed !== null) {
-			maxContextTokens = parsed;
-			localStorage.setItem('maxContextTokens', maxContextTokens.toString());
-			newMaxContextInput = '';
-			toast.success(`最大上下文已更新为 ${maxContextTokens} tokens`);
-		} else {
-			toast.error('输入格式无效，支持 25w、128k、250000 tokens、25w chars。');
-		}
-	}
 </script>
 
 <ShareChatModal bind:show={showShareChatModal} chatId={$chatId} />
@@ -185,104 +119,17 @@
 					</div>
 				{/if}
 
-				<div
-					class="flex-1 min-w-0 max-w-full mt-0.5 py-0.5 {$showSidebar ? 'ml-1' : ''}"
-				>
+				<div class="flex-1 min-w-0 max-w-full mt-0.5 py-0.5 {$showSidebar ? 'ml-1' : ''}">
 					{#if showModelSelector}
 						<div class="flex items-center gap-2">
 							<ModelSelector bind:selectedModels showSetDefault={!shareEnabled} />
-							
-							{#if contextTokenCount > 0}
-								<div class="relative">
-									<button type="button" class="hidden sm:flex text-left items-center gap-3 px-3.5 py-2 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {showContextStats ? 'border-cyan-500/50 shadow-[0_0_20px_rgba(34,211,238,0.15),inset_0_0_20px_rgba(0,0,0,0.8)]' : 'border-gray-700/50 hover:border-cyan-500/40 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] hover:shadow-[0_0_20px_rgba(34,211,238,0.1),inset_0_0_20px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer w-[240px] shrink-0 ml-2 group" on:click|stopPropagation={() => showContextStats = !showContextStats}>
-											<!-- Glowing Icon -->
-											<div class="relative flex items-center justify-center size-8 shrink-0 rounded-full bg-black/60 border {showContextStats ? 'border-cyan-500/50' : 'border-gray-700/50 group-hover:border-cyan-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(34,211,238,0.05)]">
-												<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {contextTokenCount > maxContextTokens * 0.9 ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]' : 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]'} transition-colors duration-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-													<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-												</svg>
-											</div>
-											<!-- Info & Progress -->
-											<div class="flex flex-col w-full gap-1.5 overflow-hidden">
-												<div class="flex justify-between items-baseline w-full whitespace-nowrap">
-													<span class="text-[10px] font-bold text-gray-400 tracking-widest uppercase">MEMO</span>
-													<div class="flex items-baseline">
-														<span class="text-[14px] font-mono font-bold {contextTokenCount > maxContextTokens * 0.9 ? 'text-amber-400 drop-shadow-[0_0_3px_rgba(251,191,36,0.5)]' : 'text-cyan-400 drop-shadow-[0_0_3px_rgba(34,211,238,0.5)]'} transition-colors duration-500">{(contextTokenCount / 10000).toFixed(1)}</span>
-														<span class="text-[11px] font-mono font-bold {contextTokenCount > maxContextTokens * 0.9 ? 'text-amber-500/70' : 'text-cyan-500/70'} ml-[1px]">W</span>
-														<span class="text-[10px] font-mono font-medium text-gray-500 ml-1.5">/ RY {(maxContextTokens / 10000).toFixed(1)}W</span>
-													</div>
-												</div>
-												<!-- Progress Bar -->
-												<div class="relative h-2 w-full bg-black/80 rounded-full overflow-hidden border border-gray-800/80 shadow-[inset_0_1px_3px_rgba(0,0,0,1)]">
-													<div class="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out {contextTokenCount > maxContextTokens * 0.9 ? 'bg-gradient-to-r from-amber-500 to-orange-400 shadow-[0_0_12px_rgba(245,158,11,0.9)]' : 'bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.9)]'}" style="width: {Math.min(100, (contextTokenCount / maxContextTokens) * 100)}%"></div>
-													<div class="absolute inset-y-0 left-0 w-full bg-gradient-to-b from-white/20 to-transparent"></div>
-												</div>
-											</div>
-									</button>
-
-										<!-- Detailed Stats Dropdown -->
-										{#if showContextStats}
-											<!-- svelte-ignore a11y-click-events-have-key-events -->
-											<!-- svelte-ignore a11y-no-static-element-interactions -->
-											<div class="fixed inset-0 z-40" on:click={() => showContextStats = false}></div>
-											<div 
-												class="absolute top-[110%] right-0 mt-2 w-[260px] bg-gray-900 border border-gray-700/50 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-50 p-4 text-sm backdrop-blur-xl"
-												transition:slide={{ duration: 150 }}
-											>
-												<h3 class="font-medium text-gray-200 mb-3 flex justify-between items-center">
-													<span>详细载荷统计</span>
-													<span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded-full border border-gray-700 text-gray-400">Total: {(contextTokenCount / 1000).toFixed(1)}k</span>
-												</h3>
-												
-												<div class="space-y-3 mb-4">
-													<div class="flex flex-col gap-1">
-														<div class="flex justify-between items-center text-xs">
-															<span class="text-emerald-400 font-medium">永久记忆 (Vault)</span>
-															<span class="text-gray-300 font-mono">{(vaultTokenCount / 1000).toFixed(1)}k <span class="text-gray-600 text-[10px] ml-1">({Math.round((vaultTokenCount/contextTokenCount)*100 || 0)}%)</span></span>
-														</div>
-														<div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-															<div class="h-full bg-emerald-500 rounded-full" style="width: {Math.min(100, (vaultTokenCount / maxContextTokens) * 100)}%"></div>
-														</div>
-													</div>
-													
-													<div class="flex flex-col gap-1">
-														<div class="flex justify-between items-center text-xs">
-															<span class="text-blue-400 font-medium">对话滚动 (History)</span>
-															<span class="text-gray-300 font-mono">{(historyTokenCount / 1000).toFixed(1)}k <span class="text-gray-600 text-[10px] ml-1">({Math.round((historyTokenCount/contextTokenCount)*100 || 0)}%)</span></span>
-														</div>
-														<div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-															<div class="h-full bg-blue-500 rounded-full" style="width: {Math.min(100, (historyTokenCount / maxContextTokens) * 100)}%"></div>
-														</div>
-													</div>
-												</div>
-												
-												<div class="border-t border-gray-800 pt-3 mt-1">
-													<label class="block text-[11px] text-gray-400 mb-1.5">配置最大上下文 (w, k, token, chars)</label>
-													<div class="flex gap-2">
-														<input 
-															type="text" 
-															bind:value={newMaxContextInput}
-															placeholder="例如: 25w, 128k"
-															class="flex-1 min-w-0 bg-gray-950 border border-gray-700 rounded-lg px-2.5 py-1.5 text-sm text-gray-200 outline-none focus:border-cyan-500 transition-colors"
-															on:keydown={(e) => e.key === 'Enter' && handleUpdateMaxContext()}
-														/>
-														<button 
-															on:click={handleUpdateMaxContext}
-															class="bg-gray-800 hover:bg-cyan-900/50 text-cyan-400 border border-gray-700 hover:border-cyan-500/50 rounded-lg px-3 transition-colors text-xs font-medium shrink-0"
-														>
-															保存
-														</button>
-													</div>
-													<div class="text-[10px] text-gray-500 mt-1.5">当前: {(maxContextTokens / 10000).toFixed(1)}W tokens</div>
-												</div>
-											</div>
-										{/if}
-								</div>
-							{/if}
 						</div>
 					{/if}
 				</div>
 
-				<div class="self-start flex flex-wrap items-center justify-end gap-y-2 text-gray-600 dark:text-gray-400 max-w-[55vw] sm:max-w-none">
+				<div
+					class="self-start flex flex-wrap items-center justify-end gap-y-2 text-gray-600 dark:text-gray-400 max-w-[55vw] sm:max-w-none"
+				>
 					<!-- <div class="md:hidden flex self-center w-[1px] h-5 mx-2 bg-gray-300 dark:bg-stone-700" /> -->
 
 					{#if $user?.role === 'user' ? ($user?.permissions?.chat?.temporary ?? true) && !($user?.permissions?.chat?.temporary_enforced ?? false) : true}
@@ -340,13 +187,34 @@
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
 						<Tooltip content="全部分支概览 (Overview)">
 							<button
-								class="flex items-center justify-center size-10 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {$showOverview ? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15),inset_0_0_15px_rgba(0,0,0,0.8)]' : 'border-gray-700/50 hover:border-emerald-500/40 shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] hover:shadow-[0_0_15px_rgba(16,185,129,0.1),inset_0_0_15px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer shrink-0 ml-2 group"
-								on:click={() => { showOverview.set(!$showOverview); }}
+								class="flex items-center justify-center size-10 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {$showOverview
+									? 'border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15),inset_0_0_15px_rgba(0,0,0,0.8)]'
+									: 'border-gray-700/50 hover:border-emerald-500/40 shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] hover:shadow-[0_0_15px_rgba(16,185,129,0.1),inset_0_0_15px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer shrink-0 ml-2 group"
+								on:click={() => {
+									showOverview.set(!$showOverview);
+								}}
 								aria-label="Toggle Overview"
 							>
-								<div class="relative flex items-center justify-center size-7 shrink-0 rounded-full bg-black/60 border {$showOverview ? 'border-emerald-500/50' : 'border-gray-700/50 group-hover:border-emerald-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(16,185,129,0.05)]">
-									<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {$showOverview ? 'text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.8)]' : 'text-gray-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+								<div
+									class="relative flex items-center justify-center size-7 shrink-0 rounded-full bg-black/60 border {$showOverview
+										? 'border-emerald-500/50'
+										: 'border-gray-700/50 group-hover:border-emerald-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(16,185,129,0.05)]"
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-4 w-4 {$showOverview
+											? 'text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.8)]'
+											: 'text-gray-400'}"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+										/>
 									</svg>
 								</div>
 							</button>
@@ -371,18 +239,35 @@
 						</Tooltip>
 					{/if}
 
-
-
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
 						<Tooltip content="幽灵总结器 (Ghost Summary)">
 							<button
-								class="flex items-center justify-center size-10 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {$showGhostSummary ? 'border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.15),inset_0_0_15px_rgba(0,0,0,0.8)]' : 'border-gray-700/50 hover:border-indigo-500/40 shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] hover:shadow-[0_0_15px_rgba(99,102,241,0.1),inset_0_0_15px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer shrink-0 ml-2 group"
-								on:click={() => { showGhostSummary.set(!$showGhostSummary); }}
+								class="flex items-center justify-center size-10 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {$showGhostSummary
+									? 'border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.15),inset_0_0_15px_rgba(0,0,0,0.8)]'
+									: 'border-gray-700/50 hover:border-indigo-500/40 shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] hover:shadow-[0_0_15px_rgba(99,102,241,0.1),inset_0_0_15px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer shrink-0 ml-2 group"
+								on:click={() => {
+									showGhostSummary.set(!$showGhostSummary);
+								}}
 								aria-label="Ghost Summary"
 							>
-								<div class="relative flex items-center justify-center size-7 shrink-0 rounded-full bg-black/60 border {$showGhostSummary ? 'border-indigo-500/50' : 'border-gray-700/50 group-hover:border-indigo-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(99,102,241,0.05)]">
-									<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {$showGhostSummary ? 'text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.8)]' : 'text-gray-400'}" viewBox="0 0 20 20" fill="currentColor">
-										<path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z" clip-rule="evenodd" />
+								<div
+									class="relative flex items-center justify-center size-7 shrink-0 rounded-full bg-black/60 border {$showGhostSummary
+										? 'border-indigo-500/50'
+										: 'border-gray-700/50 group-hover:border-indigo-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(99,102,241,0.05)]"
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-4 w-4 {$showGhostSummary
+											? 'text-indigo-400 drop-shadow-[0_0_6px_rgba(99,102,241,0.8)]'
+											: 'text-gray-400'}"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z"
+											clip-rule="evenodd"
+										/>
 									</svg>
 								</div>
 							</button>
@@ -392,9 +277,13 @@
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
 						<Tooltip content="记忆防爆阀 (Reasoning Stripper)">
 							<button
-								class="flex items-center justify-center size-10 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {($stripThinkChats[$chatId] ?? true) ? 'border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.15),inset_0_0_15px_rgba(0,0,0,0.8)]' : 'border-gray-700/50 hover:border-pink-500/40 shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] hover:shadow-[0_0_15px_rgba(236,72,153,0.1),inset_0_0_15px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer shrink-0 ml-2 group"
+								class="flex items-center justify-center size-10 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {($stripThinkChats[
+									$chatId
+								] ?? true)
+									? 'border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.15),inset_0_0_15px_rgba(0,0,0,0.8)]'
+									: 'border-gray-700/50 hover:border-pink-500/40 shadow-[inset_0_0_15px_rgba(0,0,0,0.8)] hover:shadow-[0_0_15px_rgba(236,72,153,0.1),inset_0_0_15px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer shrink-0 ml-2 group"
 								on:click={() => {
-									stripThinkChats.update(chats => {
+									stripThinkChats.update((chats) => {
 										const current = chats[$chatId] ?? true;
 										chats[$chatId] = !current;
 										localStorage.setItem('stripThinkChats', JSON.stringify(chats));
@@ -403,13 +292,34 @@
 								}}
 								aria-label="Toggle Reasoning Stripper"
 							>
-								<div class="relative flex items-center justify-center size-7 shrink-0 rounded-full bg-black/60 border {($stripThinkChats[$chatId] ?? true) ? 'border-pink-500/50' : 'border-gray-700/50 group-hover:border-pink-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(236,72,153,0.05)]">
-									<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {($stripThinkChats[$chatId] ?? true) ? 'text-pink-400 drop-shadow-[0_0_6px_rgba(236,72,153,0.8)]' : 'text-gray-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z" />
+								<div
+									class="relative flex items-center justify-center size-7 shrink-0 rounded-full bg-black/60 border {($stripThinkChats[
+										$chatId
+									] ?? true)
+										? 'border-pink-500/50'
+										: 'border-gray-700/50 group-hover:border-pink-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(236,72,153,0.05)]"
+								>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-4 w-4 {($stripThinkChats[$chatId] ?? true)
+											? 'text-pink-400 drop-shadow-[0_0_6px_rgba(236,72,153,0.8)]'
+											: 'text-gray-400'}"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"
+										/>
 									</svg>
 									{#if !($stripThinkChats[$chatId] ?? true)}
 										<div class="absolute inset-0 flex items-center justify-center">
-											<div class="w-full h-[2px] bg-red-500 rotate-45 transform drop-shadow-[0_0_4px_rgba(239,68,68,0.8)]"></div>
+											<div
+												class="w-full h-[2px] bg-red-500 rotate-45 transform drop-shadow-[0_0_4px_rgba(239,68,68,0.8)]"
+											></div>
 										</div>
 									{/if}
 								</div>
@@ -419,19 +329,46 @@
 
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
 						<button
-							class="flex text-left items-center gap-3 px-3.5 py-2 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {$showMemoryVault ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.15),inset_0_0_20px_rgba(0,0,0,0.8)]' : 'border-gray-700/50 hover:border-yellow-500/40 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] hover:shadow-[0_0_20px_rgba(234,179,8,0.1),inset_0_0_20px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer w-[200px] shrink-0 ml-2 group"
-							on:click={() => { showMemoryVault.set(!$showMemoryVault); }}
+							class="flex text-left items-center gap-3 px-3.5 py-2 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {$showMemoryVault
+								? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.15),inset_0_0_20px_rgba(0,0,0,0.8)]'
+								: 'border-gray-700/50 hover:border-yellow-500/40 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] hover:shadow-[0_0_20px_rgba(234,179,8,0.1),inset_0_0_20px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer w-[200px] shrink-0 ml-2 group"
+							on:click={() => {
+								showMemoryVault.set(!$showMemoryVault);
+							}}
 							aria-label="Memory Vault"
 						>
-							<div class="relative flex items-center justify-center size-8 shrink-0 rounded-full bg-black/60 border {$showMemoryVault ? 'border-yellow-500/50' : 'border-gray-700/50 group-hover:border-yellow-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(234,179,8,0.05)]">
-								<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {$showMemoryVault ? 'text-yellow-400 drop-shadow-[0_0_6px_rgba(234,179,8,0.8)]' : 'text-gray-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+							<div
+								class="relative flex items-center justify-center size-8 shrink-0 rounded-full bg-black/60 border {$showMemoryVault
+									? 'border-yellow-500/50'
+									: 'border-gray-700/50 group-hover:border-yellow-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(234,179,8,0.05)]"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4 {$showMemoryVault
+										? 'text-yellow-400 drop-shadow-[0_0_6px_rgba(234,179,8,0.8)]'
+										: 'text-gray-400'}"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+									/>
 								</svg>
 							</div>
 							<div class="flex flex-col w-full gap-0.5 overflow-hidden">
 								<div class="flex justify-between items-baseline w-full whitespace-nowrap">
-									<span class="text-[12px] font-bold text-gray-200 tracking-wide uppercase">当前对话记忆</span>
-									<span class="text-[10px] font-mono font-bold {$showMemoryVault ? 'text-yellow-400 drop-shadow-[0_0_3px_rgba(234,179,8,0.5)]' : 'text-gray-500'}">{$showMemoryVault ? 'OPEN' : 'IDLE'}</span>
+									<span class="text-[12px] font-bold text-gray-200 tracking-wide uppercase"
+										>当前对话记忆</span
+									>
+									<span
+										class="text-[10px] font-mono font-bold {$showMemoryVault
+											? 'text-yellow-400 drop-shadow-[0_0_3px_rgba(234,179,8,0.5)]'
+											: 'text-gray-500'}">{$showMemoryVault ? 'OPEN' : 'IDLE'}</span
+									>
 								</div>
 								<div class="text-[10px] font-medium text-gray-500 truncate">单次会话独立设定</div>
 							</div>
@@ -476,9 +413,12 @@
 							</button>
 						</Menu>
 					{/if}
-				</div> <!-- End horizontally scrollable tools -->
+				</div>
+				<!-- End horizontally scrollable tools -->
 
-				<div class="self-start flex flex-none items-center text-gray-600 dark:text-gray-400 pl-1 border-l border-gray-200 dark:border-gray-800 ml-1">
+				<div
+					class="self-start flex flex-none items-center text-gray-600 dark:text-gray-400 pl-1 border-l border-gray-200 dark:border-gray-800 ml-1"
+				>
 					{#if $user !== undefined && $user !== null}
 						<UserMenu
 							className="w-[240px]"

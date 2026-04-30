@@ -36,6 +36,7 @@
 	import Emoji from '$lib/components/common/Emoji.svelte';
 	import XMark from '$lib/components/icons/XMark.svelte';
 	import Note from '$lib/components/icons/Note.svelte';
+	import Grid from '$lib/components/icons/Grid.svelte';
 	import Pin from '$lib/components/icons/Pin.svelte';
 	import PinSlash from '$lib/components/icons/PinSlash.svelte';
 	import { updateUserStatus, updateUserSettings } from '$lib/apis/users';
@@ -59,7 +60,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	const DEFAULT_PINNED_ITEMS = ['notes', 'workspace'];
+	const DEFAULT_PINNED_ITEMS = ['notes', 'fragments', 'archives'];
 
 	$: pinnedItems = $settings?.pinnedMenuItems ?? DEFAULT_PINNED_ITEMS;
 
@@ -296,10 +297,32 @@
 					}
 				}}
 			>
-				<div class="self-center mr-3 text-[1.1rem]">
-					🧩
+				<div class="self-center mr-3">
+					<Grid className="size-5" strokeWidth="1.5" />
 				</div>
 				<div class="self-center truncate">碎片库</div>
+			</a>
+
+			<!-- Archive Packs -->
+			<a
+				href="/archives"
+				draggable="false"
+				class="flex flex-1 rounded-xl py-1.5 px-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition cursor-pointer select-none mt-1"
+				on:click={async (e) => {
+					if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+					e.preventDefault();
+					show = false;
+					goto('/archives');
+					if ($mobile) {
+						await tick();
+						showSidebar.set(false);
+					}
+				}}
+			>
+				<div class="self-center mr-3">
+					<ArchiveBox className="size-5" strokeWidth="1.5" />
+				</div>
+				<div class="self-center truncate">档案管理</div>
 			</a>
 
 			<hr class=" border-gray-50/30 dark:border-gray-800/30 my-1 p-0" />
