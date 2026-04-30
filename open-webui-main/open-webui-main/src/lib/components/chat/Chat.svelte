@@ -65,9 +65,19 @@
 		removeAllDetails,
 		getCodeBlockContents,
 		isYoutubeUrl,
-		displayFileHandler
+		displayFileHandler,
+		stripReasoningContent
 	} from '$lib/utils';
 	import { AudioQueue } from '$lib/utils/audio';
+	import {
+		buildPromptSystemContent,
+		createContextTokenAnchorDraft,
+		finalizeContextTokenAnchor,
+		getContextSettingsHash,
+		getInputTokensFromUsage,
+		saveContextTokenAnchor,
+		updateContextTokenCalibration
+	} from '$lib/utils/contextTokens';
 
 	import {
 		archiveChatById,
@@ -1739,6 +1749,22 @@
 
 		if (usage) {
 			message.usage = usage;
+			const actualInputTokens = getInputTokensFromUsage(usage);
+			if (actualInputTokens && message.contextTokenAnchorDraft && !message.contextTokenAnchor) {
+				const anchor = finalizeContextTokenAnchor(
+					message.contextTokenAnchorDraft,
+					actualInputTokens
+				);
+				if (saveContextTokenAnchor(anchor)) {
+					message.contextTokenAnchor = anchor;
+				}
+				updateContextTokenCalibration(
+					message.contextTokenAnchorDraft.modelId,
+					message.contextTokenAnchorDraft.rawEstimatedPromptTokens,
+					actualInputTokens,
+					message.contextTokenAnchorDraft.payloadFlags
+				);
+			}
 		}
 
 		history.messages[message.id] = message;
@@ -2190,11 +2216,9 @@
 			true;
 		// Always include system prompt — backend extracts it and prepends to DB messages.
 		// Only temp chats need conversation messages (persisted chats load from DB).
-		let systemPromptContent = `${params?.system ?? $settings?.system ?? ''}`;
+		const baseSystemPromptContent = `${params?.system ?? $settings?.system ?? ''}`;
 		const manualVault = get(manualMemoryText).trim();
-		if (manualVault !== '') {
-			systemPromptContent = `【小说后台记忆法则：最高优先级 (Vault)】\n${manualVault}\n\n====================\n\n` + systemPromptContent;
-		}
+		const systemPromptContent = buildPromptSystemContent(baseSystemPromptContent, manualVault);
 
 		let messages = [
 			systemPromptContent.trim().length > 0
@@ -2295,6 +2319,44 @@
 			});
 		}
 
+		const features = getFeatures() as Record<string, any>;
+		const payloadFlags = {
+			hasFiles: files.length > 0,
+			hasTools: toolIds.length > 0 || toolServerIds.length > 0 || skillIds.length > 0,
+			hasWebSearch: selectedFilterIds.length > 0 || features?.web_search === true,
+			hasRag: files.length > 0 || features?.memory === true
+		};
+		const stripReasoning = $stripThinkChats[_chatId] ?? true;
+		const contextSettingsHash = getContextSettingsHash({
+			stripReasoning,
+			memory: features?.memory === true
+		});
+		const responseMessageIsPromptPlaceholder = !responseMessage?.content;
+		const promptMessageChain = (_messages ?? []).filter(
+			(message: any) =>
+				message?.role !== 'system' &&
+				!(responseMessageIsPromptPlaceholder && message?.id === responseMessageId) &&
+				!(message?.role === 'assistant' && !message?.content)
+		);
+
+		responseMessage.contextTokenAnchorDraft = createContextTokenAnchorDraft({
+			modelId: model.id,
+			chatId: _chatId,
+			anchorMessageId: responseMessageId,
+			messageChain: promptMessageChain,
+			systemPrompt: baseSystemPromptContent,
+			manualMemoryText: manualVault,
+			stripReasoning,
+			stripReasoningContent,
+			payloadFlags,
+			settingsHash: contextSettingsHash
+		});
+		responseMessage.contextTokenEstimate = {
+			inputTokens: responseMessage.contextTokenAnchorDraft.rawEstimatedPromptTokens,
+			payloadFlags
+		};
+		(history.messages as any)[responseMessageId] = responseMessage;
+
 		// Use the user-selected terminal from the dropdown
 		const activeTerminalId = $selectedTerminalId ?? null;
 
@@ -2326,7 +2388,7 @@
 					// Direct terminal servers — always included when enabled (not routed through selectedToolIds)
 					...($terminalServers ?? []).filter((t) => !t.id)
 				],
-				features: getFeatures(),
+				features,
 				variables: {
 					...getPromptVariables(
 						$user?.name,
@@ -3107,7 +3169,7 @@
 		</div>
 	{/if}
 
-	<MemoryDrawer />
+	<MemoryDrawer {selectedModels} />
 	<GhostSummaryModal {history} {selectedModels} />
 </div>
 

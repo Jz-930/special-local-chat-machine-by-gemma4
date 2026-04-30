@@ -45,7 +45,13 @@
 	import Knobs from '../icons/Knobs.svelte';
 	import Cog6 from '../icons/Cog6.svelte';
 	import { WEBUI_API_BASE_URL } from '$lib/constants';
-	import { stripReasoningContent } from '$lib/utils';
+	import { createMessagesList, stripReasoningContent } from '$lib/utils';
+	import {
+		estimateContextTokens,
+		getContextSettingsHash,
+		getStoredMaxContextTokens,
+		parseContextBudgetToTokens
+	} from '$lib/utils/contextTokens';
 
 	const i18n = getContext('i18n');
 
@@ -55,7 +61,7 @@
 
 	export let chat;
 	export let history;
-	export let selectedModels;
+	export let selectedModels: string[] = [];
 	export let showModelSelector = true;
 
 	export let onSaveTempChat: () => {};
@@ -73,96 +79,63 @@
 			if (stored) {
 				stripThinkChats.set(JSON.parse(stored));
 			}
-			const storedMaxContext = localStorage.getItem('maxContextLoad');
-			if (storedMaxContext) {
-				maxContextLoad = parseInt(storedMaxContext) || 250000;
-			}
+			maxContextTokens = getStoredMaxContextTokens();
 		} catch (e) {}
 	});
 
-	let maxContextLoad = 250000;
+	let maxContextTokens = 250000;
 
-	function updateMaxContext() {
-		const result = prompt("设定全局最大上下文 (RY) 载荷\n单位：万字 (例如 25 代表 25W):", (maxContextLoad / 10000).toString());
-		if (result !== null) {
-			const parsed = parseFloat(result);
-			if (!isNaN(parsed) && parsed > 0) {
-				maxContextLoad = parsed * 10000;
-				localStorage.setItem('maxContextLoad', maxContextLoad.toString());
-			}
-		}
-	}
-
-	let contextCharCount = 0;
-	let vaultCharCount = 0;
-	let historyCharCount = 0;
+	let contextTokenCount = 0;
+	let vaultTokenCount = 0;
+	let historyTokenCount = 0;
+	let selectedContextModelId = '';
 
 	$: if (history && history.currentId !== undefined) {
-		vaultCharCount = ($manualMemoryText || '').length + ($settings?.system || '').length + 50; // 50 chars for system prompt overhead
-		let totalHistory = 0;
-		let currentMsgId = history.currentId;
-		while (currentMsgId !== null) {
-			const msg = history.messages[currentMsgId];
-			if (msg) {
-				let content =
-					typeof msg.content === 'string'
-						? msg.content
-						: Array.isArray(msg.content)
-							? msg.content.map((part: { text?: string }) => part?.text ?? '').join('')
-							: '';
-				if (msg.role === 'assistant' && ($stripThinkChats[$chatId] ?? true)) {
-					content = stripReasoningContent(content);
-				}
-				totalHistory += content.length + 20; // 20 chars overhead per message for ChatML role formatting
-				currentMsgId = msg.parentId;
-			} else {
-				break;
-			}
-		}
-		historyCharCount = totalHistory;
-		contextCharCount = vaultCharCount + historyCharCount;
+		selectedContextModelId = Array.isArray(selectedModels) ? (selectedModels[0] ?? '') : (selectedModels ?? '');
+		const stripReasoning = $stripThinkChats[$chatId] ?? true;
+		const estimate = estimateContextTokens({
+			manualMemoryText: $manualMemoryText || '',
+			systemPrompt: $settings?.system ?? '',
+			messages: createMessagesList(history, history.currentId),
+			modelId: selectedContextModelId,
+			chatId: $chatId,
+			stripReasoning,
+			stripReasoningContent,
+			settingsHash: getContextSettingsHash({
+				stripReasoning,
+				memory: $settings?.memory === true
+			})
+		});
+		vaultTokenCount = estimate.vault + estimate.system;
+		historyTokenCount = estimate.history;
+		contextTokenCount = estimate.total;
 	} else {
-		vaultCharCount = ($manualMemoryText || '').length;
-		historyCharCount = 0;
-		contextCharCount = vaultCharCount;
+		selectedContextModelId = Array.isArray(selectedModels) ? (selectedModels[0] ?? '') : (selectedModels ?? '');
+		const estimate = estimateContextTokens({
+			manualMemoryText: $manualMemoryText || '',
+			systemPrompt: $settings?.system ?? '',
+			messages: [],
+			modelId: selectedContextModelId,
+			chatId: $chatId,
+			stripReasoning: $stripThinkChats[$chatId] ?? true
+		});
+		vaultTokenCount = estimate.vault + estimate.system;
+		historyTokenCount = 0;
+		contextTokenCount = estimate.total;
 	}
 
 	let showContextStats = false;
 	let newMaxContextInput = '';
 
-	function parseSmartLimit(input) {
-		if (!input) return null;
-		let str = input.toLowerCase().replace(/,/g, '').trim();
-		let multiplier = 1;
-		if (str.endsWith('w') || str.endsWith('万')) {
-			multiplier = 10000;
-			str = str.replace(/[w万]/g, '');
-		} else if (str.endsWith('k') || str.endsWith('kb')) {
-			multiplier = 1000;
-			str = str.replace(/k|kb/g, '');
-		} else if (str.endsWith('m') || str.endsWith('mb')) {
-			multiplier = 1000000;
-			str = str.replace(/m|mb/g, '');
-		} else if (str.endsWith('token') || str.endsWith('tokens')) {
-			multiplier = 1;
-			str = str.replace(/tokens?/g, '');
-		}
-		const parsed = parseFloat(str);
-		if (!isNaN(parsed) && parsed > 0) {
-			return Math.round(parsed * multiplier);
-		}
-		return null;
-	}
-
 	function handleUpdateMaxContext() {
-		const parsed = parseSmartLimit(newMaxContextInput);
+		const parsed = parseContextBudgetToTokens(newMaxContextInput, selectedContextModelId);
 		if (parsed !== null) {
-			maxContextLoad = parsed;
-			localStorage.setItem('maxContextLoad', maxContextLoad.toString());
+			maxContextTokens = parsed;
+			localStorage.setItem('maxContextTokens', maxContextTokens.toString());
 			newMaxContextInput = '';
-			toast.success($i18n.t(`最大上下文 (RY) 已更新为 ${maxContextLoad}`));
+			toast.success(`最大上下文已更新为 ${maxContextTokens} tokens`);
 		} else {
-			toast.error($i18n.t('输入格式无效，支持数字加 w, 万, k, token 等单位'));
+			toast.error('输入格式无效，支持 25w、128k、250000 tokens、25w chars。');
 		}
 	}
 </script>
@@ -219,12 +192,12 @@
 						<div class="flex items-center gap-2">
 							<ModelSelector bind:selectedModels showSetDefault={!shareEnabled} />
 							
-							{#if contextCharCount > 0}
+							{#if contextTokenCount > 0}
 								<div class="relative">
 									<button type="button" class="hidden sm:flex text-left items-center gap-3 px-3.5 py-2 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {showContextStats ? 'border-cyan-500/50 shadow-[0_0_20px_rgba(34,211,238,0.15),inset_0_0_20px_rgba(0,0,0,0.8)]' : 'border-gray-700/50 hover:border-cyan-500/40 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] hover:shadow-[0_0_20px_rgba(34,211,238,0.1),inset_0_0_20px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer w-[240px] shrink-0 ml-2 group" on:click|stopPropagation={() => showContextStats = !showContextStats}>
 											<!-- Glowing Icon -->
 											<div class="relative flex items-center justify-center size-8 shrink-0 rounded-full bg-black/60 border {showContextStats ? 'border-cyan-500/50' : 'border-gray-700/50 group-hover:border-cyan-500/50'} transition-colors shadow-[inset_0_0_10px_rgba(34,211,238,0.05)]">
-												<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {contextCharCount > maxContextLoad * 0.9 ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]' : 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]'} transition-colors duration-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+												<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 {contextTokenCount > maxContextTokens * 0.9 ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.8)]' : 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]'} transition-colors duration-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
 													<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
 												</svg>
 											</div>
@@ -233,14 +206,14 @@
 												<div class="flex justify-between items-baseline w-full whitespace-nowrap">
 													<span class="text-[10px] font-bold text-gray-400 tracking-widest uppercase">MEMO</span>
 													<div class="flex items-baseline">
-														<span class="text-[14px] font-mono font-bold {contextCharCount > maxContextLoad * 0.9 ? 'text-amber-400 drop-shadow-[0_0_3px_rgba(251,191,36,0.5)]' : 'text-cyan-400 drop-shadow-[0_0_3px_rgba(34,211,238,0.5)]'} transition-colors duration-500">{(contextCharCount / 10000).toFixed(1)}</span>
-														<span class="text-[11px] font-mono font-bold {contextCharCount > maxContextLoad * 0.9 ? 'text-amber-500/70' : 'text-cyan-500/70'} ml-[1px]">W</span>
-														<span class="text-[10px] font-mono font-medium text-gray-500 ml-1.5">/ RY {maxContextLoad / 10000}W</span>
+														<span class="text-[14px] font-mono font-bold {contextTokenCount > maxContextTokens * 0.9 ? 'text-amber-400 drop-shadow-[0_0_3px_rgba(251,191,36,0.5)]' : 'text-cyan-400 drop-shadow-[0_0_3px_rgba(34,211,238,0.5)]'} transition-colors duration-500">{(contextTokenCount / 10000).toFixed(1)}</span>
+														<span class="text-[11px] font-mono font-bold {contextTokenCount > maxContextTokens * 0.9 ? 'text-amber-500/70' : 'text-cyan-500/70'} ml-[1px]">W</span>
+														<span class="text-[10px] font-mono font-medium text-gray-500 ml-1.5">/ RY {(maxContextTokens / 10000).toFixed(1)}W</span>
 													</div>
 												</div>
 												<!-- Progress Bar -->
 												<div class="relative h-2 w-full bg-black/80 rounded-full overflow-hidden border border-gray-800/80 shadow-[inset_0_1px_3px_rgba(0,0,0,1)]">
-													<div class="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out {contextCharCount > maxContextLoad * 0.9 ? 'bg-gradient-to-r from-amber-500 to-orange-400 shadow-[0_0_12px_rgba(245,158,11,0.9)]' : 'bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.9)]'}" style="width: {Math.min(100, (contextCharCount / maxContextLoad) * 100)}%"></div>
+													<div class="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out {contextTokenCount > maxContextTokens * 0.9 ? 'bg-gradient-to-r from-amber-500 to-orange-400 shadow-[0_0_12px_rgba(245,158,11,0.9)]' : 'bg-gradient-to-r from-blue-600 via-cyan-500 to-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.9)]'}" style="width: {Math.min(100, (contextTokenCount / maxContextTokens) * 100)}%"></div>
 													<div class="absolute inset-y-0 left-0 w-full bg-gradient-to-b from-white/20 to-transparent"></div>
 												</div>
 											</div>
@@ -257,33 +230,33 @@
 											>
 												<h3 class="font-medium text-gray-200 mb-3 flex justify-between items-center">
 													<span>详细载荷统计</span>
-													<span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded-full border border-gray-700 text-gray-400">Total: {(contextCharCount / 1000).toFixed(1)}k</span>
+													<span class="text-[10px] bg-gray-800 px-2 py-0.5 rounded-full border border-gray-700 text-gray-400">Total: {(contextTokenCount / 1000).toFixed(1)}k</span>
 												</h3>
 												
 												<div class="space-y-3 mb-4">
 													<div class="flex flex-col gap-1">
 														<div class="flex justify-between items-center text-xs">
 															<span class="text-emerald-400 font-medium">永久记忆 (Vault)</span>
-															<span class="text-gray-300 font-mono">{(vaultCharCount / 1000).toFixed(1)}k <span class="text-gray-600 text-[10px] ml-1">({Math.round((vaultCharCount/contextCharCount)*100 || 0)}%)</span></span>
+															<span class="text-gray-300 font-mono">{(vaultTokenCount / 1000).toFixed(1)}k <span class="text-gray-600 text-[10px] ml-1">({Math.round((vaultTokenCount/contextTokenCount)*100 || 0)}%)</span></span>
 														</div>
 														<div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-															<div class="h-full bg-emerald-500 rounded-full" style="width: {Math.min(100, (vaultCharCount / maxContextLoad) * 100)}%"></div>
+															<div class="h-full bg-emerald-500 rounded-full" style="width: {Math.min(100, (vaultTokenCount / maxContextTokens) * 100)}%"></div>
 														</div>
 													</div>
 													
 													<div class="flex flex-col gap-1">
 														<div class="flex justify-between items-center text-xs">
 															<span class="text-blue-400 font-medium">对话滚动 (History)</span>
-															<span class="text-gray-300 font-mono">{(historyCharCount / 1000).toFixed(1)}k <span class="text-gray-600 text-[10px] ml-1">({Math.round((historyCharCount/contextCharCount)*100 || 0)}%)</span></span>
+															<span class="text-gray-300 font-mono">{(historyTokenCount / 1000).toFixed(1)}k <span class="text-gray-600 text-[10px] ml-1">({Math.round((historyTokenCount/contextTokenCount)*100 || 0)}%)</span></span>
 														</div>
 														<div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-															<div class="h-full bg-blue-500 rounded-full" style="width: {Math.min(100, (historyCharCount / maxContextLoad) * 100)}%"></div>
+															<div class="h-full bg-blue-500 rounded-full" style="width: {Math.min(100, (historyTokenCount / maxContextTokens) * 100)}%"></div>
 														</div>
 													</div>
 												</div>
 												
 												<div class="border-t border-gray-800 pt-3 mt-1">
-													<label class="block text-[11px] text-gray-400 mb-1.5">配置最大上下文 (支持 w, k, token)</label>
+													<label class="block text-[11px] text-gray-400 mb-1.5">配置最大上下文 (w, k, token, chars)</label>
 													<div class="flex gap-2">
 														<input 
 															type="text" 
@@ -299,7 +272,7 @@
 															保存
 														</button>
 													</div>
-													<div class="text-[10px] text-gray-500 mt-1.5">当前: {(maxContextLoad / 10000)}W 字符</div>
+													<div class="text-[10px] text-gray-500 mt-1.5">当前: {(maxContextTokens / 10000).toFixed(1)}W tokens</div>
 												</div>
 											</div>
 										{/if}

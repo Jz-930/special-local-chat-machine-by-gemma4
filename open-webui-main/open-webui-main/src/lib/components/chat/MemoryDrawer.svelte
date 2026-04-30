@@ -5,6 +5,7 @@
 	import { v4 as uuidv4 } from 'uuid';
 	import Sortable from 'sortablejs';
 	import { searchNotes, getNotes, createNewNote, updateNoteById, getNoteById } from '$lib/apis/notes';
+	import { estimateTextTokens, getContextTokenProfile } from '$lib/utils/contextTokens';
 
 	let cards = [];
 	let editingCardId = null;
@@ -12,6 +13,7 @@
 	let currentNoteId = null;
 	let saveDebounceTimer = null;
 	let isMigratingOrLoading = false;
+	export let selectedModels = [];
 
 	// Fragments Library State
 	let globalFragmentsNoteId = null;
@@ -87,8 +89,18 @@
 		showFragmentsView = false;
 	}
 
-	// Derived total length
-	$: totalLength = cards.reduce((acc, card) => acc + (card.enabled !== false ? (card.content || '').length + (card.title || '').length : 0), 0);
+	let tokenProfile = getContextTokenProfile();
+	$: tokenProfile = getContextTokenProfile(
+		Array.isArray(selectedModels) ? (selectedModels[0] ?? '') : (selectedModels ?? '')
+	);
+
+	function estimateCardTokens(card) {
+		if (card.enabled === false) return 0;
+		return estimateTextTokens(`### ${card.title || ''}\n${card.content || ''}`, tokenProfile);
+	}
+
+	// Derived total token load for the exact Vault text injected into the prompt.
+	$: totalTokens = estimateTextTokens(compileCardsToText(cards), tokenProfile);
 
 	// Load vault text whenever the chat room changes (or initiates)
 	$: if ($chatId !== currentChatId) {
@@ -492,7 +504,7 @@
 								</div>
 								<p class="text-xs text-gray-400 line-clamp-3 leading-relaxed whitespace-pre-wrap">{card.content || '无内容...'}</p>
 								<div class="text-[10px] text-gray-500 mt-2 text-right">
-									{(card.content || '').length} 字 {card.enabled !== false ? '' : '(已卸载)'}
+									{estimateCardTokens(card)} tokens {card.enabled !== false ? '' : '(已卸载)'}
 								</div>
 							</div>
 						{/each}
@@ -536,14 +548,14 @@
 					</svg>
 					系统级强制挂载就绪
 				</div>
-				<div class="font-mono {totalLength > 50000 ? 'text-red-500' : totalLength > 20000 ? 'text-yellow-500' : 'text-gray-400'}">
-					{totalLength} <span class="text-gray-600">/ ~20000 字</span>
+				<div class="font-mono {totalTokens > 50000 ? 'text-red-500' : totalTokens > 20000 ? 'text-yellow-500' : 'text-gray-400'}">
+					{totalTokens} <span class="text-gray-600">/ ~20000 tokens</span>
 				</div>
 			</div>
-			{#if totalLength > 50000}
-				<span class="text-red-500/80 mt-1 max-w-full text-center">字数过高！即便是 256K 模型，巨量的 System Prompt 也会增加推理负担与算力延迟。</span>
-			{:else if totalLength > 20000}
-				<span class="text-yellow-500/80 mt-1 max-w-full text-center">字数已入深水区，您的 256K 引擎还能轻松承载，但建议适度精简设定。</span>
+			{#if totalTokens > 50000}
+				<span class="text-red-500/80 mt-1 max-w-full text-center">Token 负载过高。大型 Vault prompt 会显著增加延迟与推理成本。</span>
+			{:else if totalTokens > 20000}
+				<span class="text-yellow-500/80 mt-1 max-w-full text-center">Token 负载偏高。建议精简未启用或重复的设定。</span>
 			{/if}
 		</div>
 	</div>
