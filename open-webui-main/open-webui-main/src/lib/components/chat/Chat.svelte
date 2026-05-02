@@ -1194,6 +1194,7 @@
 
 		resetInput();
 		await chatId.set('');
+		manualMemoryText.set('');
 		await chatTitle.set('');
 
 		history = {

@@ -21,6 +21,7 @@
 	let currentNoteId = null;
 	let saveDebounceTimer = null;
 	let isMigratingOrLoading = false;
+	let vaultLoadSeq = 0;
 	export let selectedModels = [];
 
 	// Fragments Library State
@@ -181,8 +182,8 @@
 
 	// Load vault text whenever the chat room changes (or initiates)
 	$: if ($chatId !== currentChatId) {
-		migrateAndLoadVault($chatId);
 		currentChatId = $chatId;
+		migrateAndLoadVault($chatId);
 	}
 
 	function compileCardsToText(cardsArray) {
@@ -190,6 +191,30 @@
 			.filter(c => c.enabled !== false && (c.content || '').trim() !== '')
 			.map(c => `### ${c.title || '未命名设定'}\n${c.content}`)
 			.join('\n\n---\n\n');
+	}
+
+	function clearDraftVaultBackup() {
+		try {
+			const cardVaults = JSON.parse(localStorage.getItem('manualMemoryVAULT_cards_byChat') || '{}');
+			if (Object.prototype.hasOwnProperty.call(cardVaults, '')) {
+				delete cardVaults[''];
+				localStorage.setItem('manualMemoryVAULT_cards_byChat', JSON.stringify(cardVaults));
+			}
+		} catch (error) {
+			console.error("Failed to clear draft vault backup", error);
+		}
+	}
+
+	function resetVaultState({ clearDraft = false } = {}) {
+		clearTimeout(saveDebounceTimer);
+		cards = [];
+		editingCardId = null;
+		currentNoteId = null;
+		selectedCardIds = new Set();
+		cardSelectionMode = false;
+		selectedFragmentIds = new Set();
+		manualMemoryText.set('');
+		if (clearDraft) clearDraftVaultBackup();
 	}
 
 	function saveCards(newCards, targetChatId) {
@@ -249,12 +274,14 @@
 
 	async function syncVaultToBackend(cardsToSave, targetChatId) {
 		if (!targetChatId) return;
+		if ($chatId !== targetChatId) return;
+		const noteId = currentNoteId;
 		const noteTitle = `MemoryVault_${targetChatId}`;
 		const noteData = packCardsToNoteData(cardsToSave);
 
 		try {
-			if (currentNoteId) {
-				await updateNoteById(localStorage.token, currentNoteId, {
+			if (noteId) {
+				await updateNoteById(localStorage.token, noteId, {
 					title: noteTitle,
 					data: noteData
 				});
@@ -265,7 +292,7 @@
 					meta: null,
 					access_grants: []
 				});
-				if (res && res.id) {
+				if (res && res.id && $chatId === targetChatId) {
 					currentNoteId = res.id;
 				}
 			}
@@ -275,12 +302,21 @@
 	}
 
 	async function migrateAndLoadVault(newId) {
-		if (!newId) return;
+		const loadSeq = ++vaultLoadSeq;
+		currentNoteId = null;
+
+		if (!newId) {
+			resetVaultState({ clearDraft: true });
+			isMigratingOrLoading = false;
+			return;
+		}
+
 		isMigratingOrLoading = true;
 
 		try {
 			// 1. Check Backend first
 			const allNotes = await getNotes(localStorage.token, true);
+			if (loadSeq !== vaultLoadSeq || $chatId !== newId) return;
 			let backendListNote = null;
 			if (allNotes && Array.isArray(allNotes)) {
 				backendListNote = allNotes.find(item => item.title === `MemoryVault_${newId}`);
@@ -290,6 +326,7 @@
 				// Found in backend list, fetch full note to avoid truncation
 				currentNoteId = backendListNote.id;
 				const fullBackendNote = await getNoteById(localStorage.token, backendListNote.id);
+				if (loadSeq !== vaultLoadSeq || $chatId !== newId) return;
 				const loadedCards = fullBackendNote ? unpackCardsFromNoteData(fullBackendNote.data) : [];
 				if (loadedCards.length > 0) {
 					cards = loadedCards;
@@ -312,7 +349,7 @@
 				if (!cardVaults[newId] || cardVaults[newId].length === 0) {
 					cardVaults[newId] = [...cardVaults['']];
 				}
-				// Keep the draft around, just copy it
+				delete cardVaults[''];
 				localStorage.setItem('manualMemoryVAULT_cards_byChat', JSON.stringify(cardVaults));
 			}
 
@@ -334,6 +371,7 @@
 				}
 			}
 
+			if (loadSeq !== vaultLoadSeq || $chatId !== newId) return;
 			cards = loadedCards || [];
 			manualMemoryText.set(compileCardsToText(cards));
 			editingCardId = null;
@@ -344,6 +382,7 @@
 			}
 
 		} catch (e) {
+			if (loadSeq !== vaultLoadSeq || $chatId !== newId) return;
 			console.error("Failed to load or migrate vault", e);
 			// Fallback to localStorage to prevent data loss on API failure
 			try {
@@ -352,13 +391,15 @@
 					cards = cardVaults[newId];
 					manualMemoryText.set(compileCardsToText(cards));
 				} else {
-					cards = [];
+					resetVaultState();
 				}
 			} catch (fallbackError) {
-				cards = [];
+				resetVaultState();
 			}
 		} finally {
-			isMigratingOrLoading = false;
+			if (loadSeq === vaultLoadSeq && $chatId === newId) {
+				isMigratingOrLoading = false;
+			}
 		}
 	}
 

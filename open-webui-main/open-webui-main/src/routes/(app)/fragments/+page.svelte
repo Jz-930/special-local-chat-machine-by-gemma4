@@ -90,22 +90,28 @@
 	async function persistLibrary(nextLibrary: FragmentLibrary) {
 		saving = true;
 		const next = normalizeFragmentLibrary(nextLibrary);
-		library = next;
+		const data = packFragmentLibraryToNoteData(next);
 
 		try {
-			const payload = {
-				title: FRAGMENTS_NOTE_TITLE,
-				data: packFragmentLibraryToNoteData(next),
-				meta: null,
-				access_grants: []
-			};
-
 			if (fragmentsNoteId) {
-				await updateNoteById(localStorage.token, fragmentsNoteId, payload);
+				await updateNoteById(localStorage.token, fragmentsNoteId, {
+					title: FRAGMENTS_NOTE_TITLE,
+					data
+				});
 			} else {
-				const res = await createNewNote(localStorage.token, payload);
+				const res = await createNewNote(localStorage.token, {
+					title: FRAGMENTS_NOTE_TITLE,
+					data,
+					meta: null,
+					access_grants: []
+				});
 				if (res?.id) fragmentsNoteId = res.id;
 			}
+			library = next;
+		} catch (error) {
+			console.error('Failed to persist fragments library', error);
+			alert('保存碎片库失败，请检查后端服务或登录状态。');
+			throw error;
 		} finally {
 			saving = false;
 		}
