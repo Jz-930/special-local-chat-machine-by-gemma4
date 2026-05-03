@@ -1,5 +1,7 @@
 import { OPENAI_API_BASE_URL, WEBUI_API_BASE_URL, WEBUI_BASE_URL } from '$lib/constants';
 
+const DIRECT_MODEL_FETCH_TIMEOUT = 5000;
+
 export const getOpenAIConfig = async (token: string = '') => {
 	let error = null;
 
@@ -213,6 +215,7 @@ export const getOpenAIModelsDirect = async (url: string, key: string) => {
 
 	const res = await fetch(`${url}/models`, {
 		method: 'GET',
+		signal: AbortSignal.timeout(DIRECT_MODEL_FETCH_TIMEOUT),
 		headers: {
 			Accept: 'application/json',
 			'Content-Type': 'application/json',

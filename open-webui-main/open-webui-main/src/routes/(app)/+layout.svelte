@@ -51,6 +51,8 @@
 
 	const i18n = getContext('i18n');
 
+	const MODEL_BOOTSTRAP_TIMEOUT = 4000;
+
 	let loaded = false;
 	let DB = null;
 	let localDBChats = [];
@@ -117,6 +119,14 @@
 				$config?.features?.enable_direct_connections ? ($settings?.directConnections ?? null) : null
 			)
 		);
+	};
+
+	const waitForModelBootstrap = async () => {
+		const modelLoad = setModels().catch((e) => console.error('Failed to load models:', e));
+		await Promise.race([
+			modelLoad,
+			new Promise<void>((resolve) => setTimeout(resolve, MODEL_BOOTSTRAP_TIMEOUT))
+		]);
 	};
 
 	const setToolServers = async () => {
@@ -204,14 +214,15 @@
 		clearChatInputStorage();
 		await Promise.all([
 			checkLocalDBChats(),
+			setUserSettings(async () => {
+				await waitForModelBootstrap();
+			}).catch((e) => console.error('Failed to load user settings:', e))
+		]);
+
+		void Promise.all([
 			setBanners().catch((e) => console.error('Failed to load banners:', e)),
 			setTools().catch((e) => console.error('Failed to load tools:', e)),
-			setUserSettings(async () => {
-				await Promise.all([
-					setModels().catch((e) => console.error('Failed to load models:', e)),
-					setToolServers().catch((e) => console.error('Failed to load tool servers:', e))
-				]);
-			}).catch((e) => console.error('Failed to load user settings:', e))
+			setToolServers().catch((e) => console.error('Failed to load tool servers:', e))
 		]);
 
 		// Helper function to check if the pressed keys match the shortcut definition
@@ -348,9 +359,8 @@
 			}
 		});
 
-		await tick();
-
 		loaded = true;
+		await tick();
 	});
 </script>
 

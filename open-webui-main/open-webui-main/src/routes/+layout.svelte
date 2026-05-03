@@ -109,8 +109,16 @@
 	let syncStatsEventData = null;
 
 	let heartbeatInterval = null;
+	let reconnectToastTimer = null;
 
 	const BREAKPOINT = 1024;
+
+	const clearReconnectToastTimer = () => {
+		if (reconnectToastTimer) {
+			clearTimeout(reconnectToastTimer);
+			reconnectToastTimer = null;
+		}
+	};
 
 	const setupSocket = async (enableWebsocket) => {
 		const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
@@ -132,30 +140,23 @@
 
 		_socket.on('connect', async () => {
 			console.log('connected', _socket.id);
+			clearReconnectToastTimer();
+			socketConnected.set(true);
 
 			if (hasConnectedOnce) {
-				socketConnected.set(true);
 				toast.success($i18n.t('Reconnected'));
 			}
 			hasConnectedOnce = true;
 
-			const res = await getVersion(localStorage.token);
-
-			const deploymentId = res?.deployment_id ?? null;
-			const version = res?.version ?? null;
-
-			if (version !== null || deploymentId !== null) {
-				if (
-					($WEBUI_VERSION !== null && version !== $WEBUI_VERSION) ||
-					($WEBUI_DEPLOYMENT_ID !== null && deploymentId !== $WEBUI_DEPLOYMENT_ID)
-				) {
-					await unregisterServiceWorkers();
-					location.href = location.href;
-					return;
-				}
-			}
+			const res = await getVersion(localStorage.token).catch((error) => {
+				console.warn('Failed to sync backend version after socket connect:', error);
+				return null;
+			});
 
 			// Send heartbeat every 30 seconds
+			if (heartbeatInterval) {
+				clearInterval(heartbeatInterval);
+			}
 			heartbeatInterval = setInterval(() => {
 				if (_socket.connected) {
 					console.log('Sending heartbeat');
@@ -163,16 +164,33 @@
 				}
 			}, 30000);
 
-			if (deploymentId !== null) {
-				WEBUI_DEPLOYMENT_ID.set(deploymentId);
-			}
+			if (res) {
+				const deploymentId = res?.deployment_id ?? null;
+				const version = res?.version ?? null;
 
-			if (version !== null) {
-				WEBUI_VERSION.set(version);
-				window.WEBUI_VERSION = version;
-			}
+				if (
+					(version !== null && $WEBUI_VERSION !== null && version !== $WEBUI_VERSION) ||
+					(deploymentId !== null &&
+						$WEBUI_DEPLOYMENT_ID !== null &&
+						deploymentId !== $WEBUI_DEPLOYMENT_ID)
+				) {
+					console.warn('Backend version changed; preserving current UI state without reload.', {
+						version,
+						deploymentId
+					});
+				}
 
-			console.log('version', version);
+				if (deploymentId !== null) {
+					WEBUI_DEPLOYMENT_ID.set(deploymentId);
+				}
+
+				if (version !== null) {
+					WEBUI_VERSION.set(version);
+					window.WEBUI_VERSION = version;
+				}
+
+				console.log('version', version);
+			}
 
 			if (localStorage.getItem('token')) {
 				// Emit user-join event with auth token
@@ -193,7 +211,15 @@
 		_socket.on('disconnect', (reason, details) => {
 			console.log(`Socket ${_socket.id} disconnected due to ${reason}`);
 			socketConnected.set(false);
-			toast.warning($i18n.t('Connection lost. Reconnecting...'));
+			clearReconnectToastTimer();
+
+			if (reason !== 'io client disconnect') {
+				reconnectToastTimer = setTimeout(() => {
+					if (!_socket.connected) {
+						toast.warning($i18n.t('Connection lost. Reconnecting...'));
+					}
+				}, 1500);
+			}
 
 			if (heartbeatInterval) {
 				clearInterval(heartbeatInterval);
@@ -1100,6 +1126,11 @@
 	});
 
 	onDestroy(() => {
+		clearReconnectToastTimer();
+		if (heartbeatInterval) {
+			clearInterval(heartbeatInterval);
+			heartbeatInterval = null;
+		}
 		bc.close();
 	});
 </script>

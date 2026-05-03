@@ -160,6 +160,23 @@
 		selectedModelIds = selectedModels;
 	}
 
+	$: if (
+		!chatIdProp &&
+		$models.length > 0 &&
+		selectedModels &&
+		(selectedModels.length === 0 || selectedModels.every((modelId) => !modelId))
+	) {
+		const availableModels = $models
+			.filter((m) => !(m?.info?.meta?.hidden ?? false))
+			.map((m) => m.id);
+		const defaultModels = $config?.default_models ? $config.default_models.split(',') : [];
+		const preferredModels = ($settings?.models ?? defaultModels).filter((modelId) =>
+			availableModels.includes(modelId)
+		);
+
+		selectedModels = preferredModels.length > 0 ? preferredModels : [availableModels.at(0) ?? ''];
+	}
+
 	let selectedToolIds = [];
 	let selectedFilterIds = [];
 	let pendingOAuthTools = [];
