@@ -2888,13 +2888,13 @@
 />
 
 <div
-	class="h-screen max-h-[100dvh] transition-width duration-200 ease-in-out {$showSidebar
-		? '  md:max-w-[calc(100%-var(--sidebar-width))]'
-		: ' '} w-full max-w-full flex flex-col"
+	class="app-main-pane transition-width duration-200 ease-in-out {$showSidebar
+		? 'app-main-pane--with-sidebar'
+		: ''} w-full max-w-full flex flex-col"
 	id="chat-container"
 >
 	{#if !loading}
-		<div in:fade={{ duration: 50 }} class="w-full h-full flex flex-col">
+		<div in:fade={{ duration: 50 }} class="w-full h-full min-h-0 flex flex-col">
 			{#if $selectedFolder && $selectedFolder?.meta?.background_image_url}
 				<div
 					class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
@@ -2916,8 +2916,12 @@
 				/>
 			{/if}
 
-			<PaneGroup direction="horizontal" class="w-full h-full">
-				<Pane defaultSize={50} minSize={30} class="h-full flex relative max-w-full flex-col">
+			<PaneGroup direction="horizontal" class="w-full h-full min-w-0">
+				<Pane
+					defaultSize={50}
+					minSize={30}
+					class="h-full min-w-0 flex relative max-w-full flex-col"
+				>
 					<FilesOverlay show={dragged} />
 					<Navbar
 						bind:this={navbarElement}
@@ -2978,10 +2982,13 @@
 						}}
 					/>
 
-					<div id="chat-pane" class="flex flex-col flex-auto z-10 w-full @container overflow-auto">
+					<div
+						id="chat-pane"
+						class="flex flex-col flex-auto z-10 w-full @container overflow-hidden"
+					>
 						{#if ($settings?.landingPageMode === 'chat' && !$selectedFolder) || createMessagesList(history, history.currentId).length > 0}
 							<div
-								class=" pb-2.5 flex flex-col justify-between w-full flex-auto overflow-auto h-0 max-w-full z-10 scrollbar-hidden"
+								class="pb-2.5 flex flex-col justify-between w-full flex-auto overflow-auto h-0 max-w-full z-10 scrollbar-hidden"
 								id="messages-container"
 								bind:this={messagesContainerElement}
 								on:scroll={(e) => {
@@ -2992,7 +2999,7 @@
 									}
 								}}
 							>
-								<div class=" h-full w-full flex flex-col">
+								<div class="h-full min-h-0 w-full flex flex-col">
 									<Messages
 										chatId={$chatId}
 										bind:history
@@ -3020,7 +3027,7 @@
 
 							<ContextTokenPanel {history} {selectedModels} className="mb-2" />
 
-							<div class=" pb-2 {dragged ? 'z-0' : 'z-10'}">
+							<div class="chat-composer-wrap pb-2 {dragged ? 'z-0' : 'z-10'}">
 								<MessageInput
 									bind:this={messageInput}
 									{history}

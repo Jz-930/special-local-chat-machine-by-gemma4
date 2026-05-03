@@ -86,27 +86,29 @@
 />
 
 <nav
-	class="sticky top-0 z-30 w-full {chat?.id
+	class="gladia-navbar sticky top-0 z-30 w-full px-2 sm:px-3 {chat?.id
 		? 'pt-0.5 pb-1'
-		: 'pt-1 pb-1'} -mb-12 flex flex-col items-center drag-region"
+		: 'pt-1 pb-1'} flex flex-col items-center drag-region"
 >
-	<div class="flex items-center w-full pl-1.5 pr-1">
+	<div class="gladia-navbar-shell flex items-center w-full pl-1.5 pr-1">
 		<div
 			id="navbar-bg-gradient-to-b"
 			class="{chat?.id
 				? 'visible'
-				: 'invisible'} bg-linear-to-b via-40% to-97% from-white/90 via-white/50 to-transparent dark:from-gray-900/90 dark:via-gray-900/50 dark:to-transparent pointer-events-none absolute inset-0 -bottom-10 z-[-1]"
+				: 'invisible'} gladia-navbar-gradient pointer-events-none absolute inset-x-0 top-0 -bottom-10 z-[-1]"
 		></div>
 
-		<div class=" flex max-w-full w-full mx-auto px-1.5 md:px-2 pt-0.5 bg-transparent">
-			<div class="flex items-center w-full max-w-full">
+		<div
+			class="gladia-navbar-inner flex min-w-0 max-w-full w-full mx-auto px-1.5 md:px-2 py-1 bg-transparent"
+		>
+			<div class="gladia-navbar-content flex items-center gap-1 w-full max-w-full min-w-0">
 				{#if $mobile && !$showSidebar}
 					<div
-						class="-translate-x-0.5 mr-1 mt-1 self-start flex flex-none items-center text-gray-600 dark:text-gray-400"
+						class="gladia-navbar-sidebar-toggle -translate-x-0.5 mr-1 mt-1 self-start flex flex-none items-center text-gray-400"
 					>
 						<Tooltip content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}>
 							<button
-								class=" cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
+								class="gladia-navbar-icon-button cursor-pointer flex rounded-lg transition"
 								on:click={() => {
 									showSidebar.set(!$showSidebar);
 								}}
@@ -119,16 +121,20 @@
 					</div>
 				{/if}
 
-				<div class="flex-1 min-w-0 max-w-full mt-0.5 py-0.5 {$showSidebar ? 'ml-1' : ''}">
+				<div
+					class="gladia-navbar-model flex-1 min-w-0 max-w-full mt-0.5 py-0.5 {$showSidebar
+						? 'ml-1'
+						: ''}"
+				>
 					{#if showModelSelector}
-						<div class="flex items-center gap-2">
+						<div class="gladia-navbar-model-scroll flex items-center gap-2">
 							<ModelSelector bind:selectedModels showSetDefault={!shareEnabled} />
 						</div>
 					{/if}
 				</div>
 
 				<div
-					class="self-start flex flex-wrap items-center justify-end gap-y-2 text-gray-600 dark:text-gray-400 max-w-[55vw] sm:max-w-none"
+					class="gladia-navbar-actions gladia-scroll-row self-start flex items-center justify-end gap-y-2 text-gray-400"
 				>
 					<!-- <div class="md:hidden flex self-center w-[1px] h-5 mx-2 bg-gray-300 dark:bg-stone-700" /> -->
 
@@ -136,7 +142,7 @@
 						{#if !chat?.id}
 							<Tooltip content={$i18n.t(`Temporary Chat`)}>
 								<button
-									class="flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+									class="gladia-navbar-icon-button flex cursor-pointer px-2 py-2 rounded-xl transition"
 									id="temporary-chat-button"
 									on:click={async () => {
 										if (($settings?.temporaryChatByDefault ?? false) && $temporaryChatEnabled) {
@@ -170,7 +176,7 @@
 						{:else if $temporaryChatEnabled}
 							<Tooltip content={$i18n.t(`Save Chat`)}>
 								<button
-									class="flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+									class="gladia-navbar-icon-button flex cursor-pointer px-2 py-2 rounded-xl transition"
 									id="save-temporary-chat-button"
 									on:click={async () => {
 										onSaveTempChat();
@@ -225,8 +231,8 @@
 						<Tooltip content={$i18n.t('New Chat')}>
 							<button
 								class=" flex {$showSidebar
-									? 'md:hidden'
-									: ''} cursor-pointer px-2 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+									? 'lg:hidden'
+									: ''} gladia-navbar-icon-button cursor-pointer px-2 py-2 rounded-xl transition"
 								on:click={() => {
 									initNewChat();
 								}}
@@ -329,9 +335,9 @@
 
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
 						<button
-							class="flex text-left items-center gap-3 px-3.5 py-2 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {$showMemoryVault
+							class="gladia-memory-vault-button flex text-left items-center gap-3 px-3.5 py-2 rounded-2xl bg-[#0f1115]/90 backdrop-blur-xl border {$showMemoryVault
 								? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.15),inset_0_0_20px_rgba(0,0,0,0.8)]'
-								: 'border-gray-700/50 hover:border-yellow-500/40 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] hover:shadow-[0_0_20px_rgba(234,179,8,0.1),inset_0_0_20px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer w-[200px] shrink-0 ml-2 group"
+								: 'border-gray-700/50 hover:border-yellow-500/40 shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] hover:shadow-[0_0_20px_rgba(234,179,8,0.1),inset_0_0_20px_rgba(0,0,0,0.8)]'} transition-all duration-300 cursor-pointer shrink-0 ml-2 group"
 							on:click={() => {
 								showMemoryVault.set(!$showMemoryVault);
 							}}
@@ -359,7 +365,7 @@
 									/>
 								</svg>
 							</div>
-							<div class="flex flex-col w-full gap-0.5 overflow-hidden">
+							<div class="gladia-memory-vault-label flex flex-col w-full gap-0.5 overflow-hidden">
 								<div class="flex justify-between items-baseline w-full whitespace-nowrap">
 									<span class="text-[12px] font-bold text-gray-200 tracking-wide uppercase"
 										>当前对话记忆</span
@@ -378,7 +384,7 @@
 					{#if $user?.role === 'admin' || ($user?.permissions.chat?.controls ?? true)}
 						<Tooltip content={$i18n.t('Controls')}>
 							<button
-								class=" flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								class="gladia-navbar-icon-button flex cursor-pointer px-2 py-2 rounded-xl transition"
 								on:click={async () => {
 									await showControls.set(!$showControls);
 								}}
@@ -404,7 +410,7 @@
 							{moveChatHandler}
 						>
 							<button
-								class="flex cursor-pointer px-2 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								class="gladia-navbar-icon-button flex cursor-pointer px-2 py-2 rounded-xl transition"
 								id="chat-context-menu-button"
 							>
 								<div class=" m-auto self-center">
@@ -413,34 +419,36 @@
 							</button>
 						</Menu>
 					{/if}
-				</div>
-				<!-- End horizontally scrollable tools -->
 
-				<div
-					class="self-start flex flex-none items-center text-gray-600 dark:text-gray-400 pl-1 border-l border-gray-200 dark:border-gray-800 ml-1"
-				>
 					{#if $user !== undefined && $user !== null}
-						<UserMenu
-							className="w-[240px]"
-							role={$user?.role}
-							help={true}
-							on:show={(e) => {
-								if (e.detail === 'archived-chat') {
-									showArchivedChats.set(true);
-								}
-							}}
+						<div
+							class="gladia-navbar-user self-start flex flex-none items-center text-gray-400 pl-1 border-l gladia-navbar-divider ml-1 shrink-0"
 						>
-							<div
-								class="select-none flex rounded-xl p-1.5 w-full hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+							<UserMenu
+								className="w-[240px]"
+								role={$user?.role}
+								help={true}
+								on:show={(e) => {
+									if (e.detail === 'archived-chat') {
+										showArchivedChats.set(true);
+									}
+								}}
 							>
-								<div class=" self-center">
-									<span class="sr-only">{$i18n.t('User menu')}</span>
-									<Cog6 className="size-6 text-gray-500 dark:text-gray-400" />
-								</div>
-							</div>
-						</UserMenu>
+								<button
+									type="button"
+									aria-label={$i18n.t('User menu')}
+									class="gladia-navbar-icon-button select-none flex rounded-xl p-1.5 w-full transition"
+								>
+									<div class=" self-center">
+										<span class="sr-only">{$i18n.t('User menu')}</span>
+										<Cog6 className="size-6 text-gray-500 dark:text-gray-400" />
+									</div>
+								</button>
+							</UserMenu>
+						</div>
 					{/if}
 				</div>
+				<!-- End horizontally scrollable tools -->
 			</div>
 		</div>
 	</div>

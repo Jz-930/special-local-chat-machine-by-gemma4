@@ -411,19 +411,17 @@
 	{#if confirmEdit}
 		<div
 			id="sidebar-chat-item"
-			class=" w-full flex justify-between rounded-xl px-[11px] py-[6px] {id === $chatId ||
-			confirmEdit
-				? 'bg-gray-100 dark:bg-gray-900 selected'
+			class="gladia-sidebar-row w-full flex justify-between rounded-xl px-[11px] py-[6px] {id ===
+				$chatId || confirmEdit
+				? 'gladia-sidebar-row--active selected'
 				: selected
-					? 'bg-gray-100 dark:bg-gray-950 selected'
-					: 'group-hover:bg-gray-100 dark:group-hover:bg-gray-950'}  whitespace-nowrap text-ellipsis relative {generating
-				? 'cursor-not-allowed'
-				: ''}"
+					? 'gladia-sidebar-row--selected selected'
+					: ''}  whitespace-nowrap text-ellipsis relative {generating ? 'cursor-not-allowed' : ''}"
 		>
 			<input
 				id="chat-title-input-{id}"
 				bind:value={chatTitle}
-				class=" bg-transparent w-full outline-hidden mr-10"
+				class=" bg-transparent w-full outline-hidden mr-10 text-gray-100 placeholder:text-gray-500"
 				placeholder={generating ? $i18n.t('Generating...') : ''}
 				disabled={generating}
 				on:keydown={chatTitleInputKeydownHandler}
@@ -447,12 +445,12 @@
 	{:else}
 		<a
 			id="sidebar-chat-item"
-			class=" w-full flex justify-between rounded-xl px-[11px] py-[6px] {id === $chatId ||
-			confirmEdit
-				? 'bg-gray-100 dark:bg-gray-900 selected'
+			class="gladia-sidebar-row w-full flex justify-between rounded-xl px-[11px] py-[6px] {id ===
+				$chatId || confirmEdit
+				? 'gladia-sidebar-row--active selected'
 				: selected
-					? 'bg-gray-100 dark:bg-gray-950 selected'
-					: ' group-hover:bg-gray-100 dark:group-hover:bg-gray-950'}  whitespace-nowrap text-ellipsis"
+					? 'gladia-sidebar-row--selected selected'
+					: ''}  whitespace-nowrap text-ellipsis"
 			href="/c/{id}"
 			on:click={() => {
 				dispatch('select');
@@ -495,13 +493,15 @@
 			<div class="flex self-center flex-1 w-full min-w-0">
 				{#if unread}
 					<div class="shrink-0 self-center pr-2.5 flex transition-opacity duration-300">
-						<div class="size-1.5 bg-sky-500 rounded-full" />
+						<div
+							class="size-1.5 bg-primary-300 rounded-full shadow-[0_0_10px_rgba(111,76,255,0.75)]"
+						/>
 					</div>
 				{/if}
 				<div
 					dir="auto"
 					class="text-left self-center overflow-hidden w-full h-[20px] truncate {unread
-						? 'font-medium text-gray-900 dark:text-gray-100'
+						? 'font-semibold text-white'
 						: ''}"
 				>
 					{title}
@@ -510,7 +510,7 @@
 
 			<!-- Time ago indicator -->
 			{#if createdAt && !mouseOver}
-				<div class="shrink-0 self-center text-[10px] text-gray-400 dark:text-gray-500 pl-2">
+				<div class="shrink-0 self-center text-[10px] text-gray-500 pl-2">
 					{formatTimeAgo(createdAt)}
 				</div>
 			{/if}
@@ -520,17 +520,15 @@
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div
 		id="sidebar-chat-item-menu"
-		class="
+		class="gladia-sidebar-row-menu
         {id === $chatId || confirmEdit
-			? 'from-gray-100 dark:from-gray-900 selected'
+			? 'gladia-sidebar-row-menu--active selected'
 			: selected
-				? 'from-gray-100 dark:from-gray-950 selected'
-				: 'invisible group-hover:visible from-gray-100 dark:from-gray-950'}
+				? 'gladia-sidebar-row-menu--active selected'
+				: 'invisible group-hover:visible gladia-sidebar-row-menu--idle'}
             absolute {className === 'pr-2'
 			? 'right-[8px]'
-			: 'right-1'} top-[4px] py-1 pr-0.5 mr-1.5 pl-5 bg-linear-to-l from-80%
-
-              to-transparent"
+			: 'right-1'} top-[4px] py-1 pr-0.5 mr-1.5 pl-5"
 		on:mouseenter={(e) => {
 			mouseOver = true;
 		}}
@@ -544,7 +542,7 @@
 			>
 				<Tooltip content={$i18n.t('Generate')}>
 					<button
-						class=" self-center dark:hover:text-white transition disabled:cursor-not-allowed"
+						class="gladia-sidebar-menu-icon self-center transition disabled:cursor-not-allowed"
 						id="generate-title-button"
 						disabled={generating}
 						on:click={() => {
@@ -559,7 +557,7 @@
 			<div class=" flex items-center self-center space-x-1.5">
 				<Tooltip content={$i18n.t('Archive')} className="flex items-center">
 					<button
-						class=" self-center dark:hover:text-white transition disabled:cursor-not-allowed"
+						class="gladia-sidebar-menu-icon self-center transition disabled:cursor-not-allowed"
 						disabled={archiving}
 						on:click={() => {
 							archiveChatHandler(id);
@@ -572,7 +570,7 @@
 
 				<Tooltip content={$i18n.t('Delete')}>
 					<button
-						class=" self-center dark:hover:text-white transition disabled:cursor-not-allowed"
+						class="gladia-sidebar-menu-icon self-center transition disabled:cursor-not-allowed"
 						disabled={deleting}
 						on:click={() => {
 							deleteChatHandler(id);
@@ -610,7 +608,7 @@
 				>
 					<button
 						aria-label="Chat Menu"
-						class=" self-center dark:hover:text-white transition m-0"
+						class="gladia-sidebar-menu-icon self-center transition m-0"
 						on:click={() => {
 							dispatch('select');
 						}}

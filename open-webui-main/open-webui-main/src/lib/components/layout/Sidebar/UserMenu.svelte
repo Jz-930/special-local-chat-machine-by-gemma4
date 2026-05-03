@@ -330,17 +330,30 @@
 			<!-- Engine Status -->
 			<div class="flex flex-col font-primary w-full mt-1">
 				{#if $models && $models.length > 0}
-					<div class="flex items-center gap-3 rounded-xl py-2 px-3 w-full transition cursor-default">
+					<button
+						class="flex items-center gap-3 rounded-xl py-2 px-3 w-full transition text-left hover:bg-gray-100 dark:hover:bg-gray-800"
+						on:click={() => {
+							show = false;
+							goto('/admin/settings/connections');
+						}}
+						title="Manage Connections"
+						aria-label="Manage Connections"
+					>
 						<span class="relative flex size-3 shrink-0">
-							<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+							<span
+								class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+							></span>
 							<span class="relative inline-flex rounded-full size-3 bg-green-500"></span>
 						</span>
 						<div class="font-medium text-xs text-green-500 truncate">Engine Online</div>
-					</div>
+					</button>
 				{:else}
 					<button
 						class="flex items-center gap-3 rounded-xl py-2 px-3 w-full hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-						on:click={() => { show = false; goto('/admin/settings/connections'); }}
+						on:click={() => {
+							show = false;
+							goto('/admin/settings/connections');
+						}}
 					>
 						<span class="relative flex size-3 shrink-0">
 							<span class="relative inline-flex rounded-full size-3 bg-gray-500"></span>

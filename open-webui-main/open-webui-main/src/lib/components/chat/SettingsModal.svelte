@@ -589,13 +589,22 @@
 	});
 </script>
 
-<Modal size="2xl" bind:show>
-	<div class="text-gray-700 dark:text-gray-100 mx-1">
-		<div class=" flex justify-between dark:text-gray-300 px-4 md:px-4.5 pt-4.5 pb-0.5 md:pb-2.5">
-			<div class=" text-lg font-medium self-center">{$i18n.t('Settings')}</div>
+<Modal
+	size="2xl"
+	bind:show
+	containerClassName="p-2 md:p-5"
+	className="gladia-settings-shell !w-[calc(100vw-1rem)] overflow-hidden !rounded-2xl !border !border-gray-700/70 bg-gray-950/95 text-gray-100 shadow-[0_28px_90px_rgba(0,0,0,0.65),0_0_0_1px_rgba(111,76,255,0.08)] backdrop-blur-2xl md:!w-[84rem]"
+>
+	<div class="gladia-settings-modal relative mx-0 overflow-hidden text-gray-100">
+		<div
+			class="relative flex justify-between border-b border-gray-800/80 bg-gray-950/90 px-4 pt-4 pb-3 md:px-5"
+		>
+			<div class="self-center text-lg font-semibold tracking-normal text-gray-100">
+				{$i18n.t('Settings')}
+			</div>
 			<button
 				aria-label={$i18n.t('Close settings modal')}
-				class="self-center"
+				class="self-center rounded-lg border border-gray-700/70 bg-gray-900/80 p-2 text-gray-400 transition hover:border-primary-500/70 hover:bg-primary-500/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500/70"
 				on:click={() => {
 					show = false;
 				}}
@@ -604,17 +613,19 @@
 			</button>
 		</div>
 
-		<div class="flex flex-col md:flex-row w-full pt-1 pb-4">
+		<div
+			class="flex w-full min-w-0 flex-col bg-[radial-gradient(circle_at_78%_0%,rgba(111,76,255,0.12),transparent_34%),linear-gradient(180deg,#0f1720,#0b0f14)] md:flex-row"
+		>
 			<div
 				role="tablist"
 				id="settings-tabs-container"
-				class="tabs flex flex-row overflow-x-auto gap-2.5 mx-3 md:pr-4 md:gap-1 md:flex-col flex-1 md:flex-none md:w-50 md:min-h-[min(42rem,calc(100dvh-10rem))] md:max-h-[min(42rem,calc(100dvh-10rem))] dark:text-gray-200 text-sm text-left mb-1 md:mb-0 -translate-y-1"
+				class="tabs flex min-w-0 flex-row gap-2 overflow-x-auto border-b border-gray-800/80 bg-gray-950/40 px-3 py-3 text-left text-sm md:w-56 md:flex-none md:flex-col md:gap-1.5 md:border-b-0 md:border-r md:px-3.5 md:py-4 md:min-h-[min(42rem,calc(100dvh-10rem))] md:max-h-[min(42rem,calc(100dvh-10rem))]"
 			>
 				<div
-					class="hidden md:flex w-full rounded-full px-2.5 gap-2 bg-gray-100/80 dark:bg-gray-850/80 backdrop-blur-2xl my-1 mb-1.5"
+					class="hidden w-full gap-2 rounded-lg border border-gray-800/90 bg-gray-900/80 px-2.5 py-1.5 shadow-inner backdrop-blur-2xl md:flex"
 					id="settings-search"
 				>
-					<div class="self-center rounded-l-xl bg-transparent">
+					<div class="self-center rounded-l-xl bg-transparent text-gray-500">
 						<Search
 							className="size-3.5"
 							strokeWidth={($settings?.highContrastMode ?? false) ? '3' : '1.5'}
@@ -622,7 +633,7 @@
 					</div>
 					<label class="sr-only" for="search-input-settings-modal">{$i18n.t('Search')}</label>
 					<input
-						class={`w-full py-1 text-sm bg-transparent dark:text-gray-300 outline-hidden
+						class={`w-full bg-transparent py-1 text-sm text-gray-200 outline-hidden
 								${($settings?.highContrastMode ?? false) ? 'placeholder-gray-800' : ''}`}
 						bind:value={search}
 						id="search-input-settings-modal"
@@ -880,7 +891,7 @@
 				{/if}
 			</div>
 			<div
-				class="flex-1 px-3.5 md:pl-0 md:pr-4.5 md:min-h-[min(42rem,calc(100dvh-10rem))] max-h-[min(42rem,calc(100dvh-10rem))] overflow-y-auto"
+				class="gladia-settings-content max-h-[min(42rem,calc(100dvh-10rem))] min-w-0 flex-1 overflow-y-auto px-4 py-4 md:min-h-[min(42rem,calc(100dvh-10rem))] md:px-5"
 			>
 				{#if selectedTab === 'general'}
 					<General
@@ -943,6 +954,18 @@
 </Modal>
 
 <style>
+	.gladia-settings-modal {
+		--gladia-bg: #0b0f14;
+		--gladia-surface: #0f1720;
+		--gladia-surface-soft: #12191f;
+		--gladia-border: #162028;
+		--gladia-border-strong: #273241;
+		--gladia-text: #e6eef6;
+		--gladia-muted: #9aa4ad;
+		--gladia-primary: #6f4cff;
+		--gladia-primary-soft: rgba(111, 76, 255, 0.16);
+	}
+
 	input::-webkit-outer-spin-button,
 	input::-webkit-inner-spin-button {
 		/* display: none; <- Crashes Chrome on hover */
@@ -962,5 +985,239 @@
 	input[type='number'] {
 		appearance: textfield;
 		-moz-appearance: textfield; /* Firefox */
+	}
+
+	.gladia-settings-content {
+		scrollbar-gutter: stable;
+	}
+
+	.gladia-settings-modal :global([role='tab']),
+	.gladia-settings-modal :global(#settings-tabs-container > a) {
+		min-height: 2.25rem;
+		border: 1px solid transparent !important;
+		border-radius: 0.5rem !important;
+		color: var(--gladia-muted) !important;
+		font-weight: 500;
+		letter-spacing: 0;
+		transition:
+			background 160ms ease,
+			border-color 160ms ease,
+			color 160ms ease,
+			box-shadow 160ms ease,
+			transform 160ms ease;
+	}
+
+	.gladia-settings-modal :global([role='tab']:hover),
+	.gladia-settings-modal :global(#settings-tabs-container > a:hover) {
+		border-color: rgba(111, 76, 255, 0.34) !important;
+		background: rgba(111, 76, 255, 0.08) !important;
+		color: var(--gladia-text) !important;
+	}
+
+	.gladia-settings-modal :global([role='tab'][aria-selected='true']) {
+		border-color: rgba(111, 76, 255, 0.45) !important;
+		background:
+			linear-gradient(180deg, rgba(111, 76, 255, 0.2), rgba(111, 76, 255, 0.1)),
+			var(--gladia-surface-soft) !important;
+		color: #ffffff !important;
+		box-shadow:
+			inset 3px 0 0 var(--gladia-primary),
+			0 0 22px rgba(111, 76, 255, 0.1);
+	}
+
+	.gladia-settings-modal :global([role='tab'] svg),
+	.gladia-settings-modal :global(#settings-tabs-container > a svg) {
+		color: currentColor;
+		opacity: 0.92;
+	}
+
+	.gladia-settings-modal :global(#settings-search input) {
+		border: 0 !important;
+		background: transparent !important;
+		box-shadow: none !important;
+		color: var(--gladia-text) !important;
+		padding: 0.25rem 0 !important;
+	}
+
+	.gladia-settings-modal :global(#settings-search input::placeholder) {
+		color: #66726f !important;
+	}
+
+	.gladia-settings-modal :global(hr) {
+		border-color: rgba(39, 50, 65, 0.72) !important;
+	}
+
+	.gladia-settings-modal :global(h1),
+	.gladia-settings-modal :global(.font-medium) {
+		color: var(--gladia-text);
+		letter-spacing: 0;
+	}
+
+	.gladia-settings-modal :global(.text-gray-500),
+	.gladia-settings-modal :global(.text-gray-400),
+	.gladia-settings-modal :global(.dark\:text-gray-500),
+	.gladia-settings-modal :global(.dark\:text-gray-600) {
+		color: var(--gladia-muted) !important;
+	}
+
+	.gladia-settings-modal
+		:global(
+			input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='file']):not(
+					[hidden]
+				)
+		),
+	.gladia-settings-modal :global(select),
+	.gladia-settings-modal :global(textarea) {
+		min-height: 2.25rem;
+		border: 1px solid rgba(39, 50, 65, 0.86) !important;
+		border-radius: 0.5rem !important;
+		background: rgba(15, 23, 32, 0.86) !important;
+		color: var(--gladia-text) !important;
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.035),
+			inset 0 12px 28px rgba(0, 0, 0, 0.18) !important;
+		transition:
+			border-color 160ms ease,
+			box-shadow 160ms ease,
+			background 160ms ease;
+	}
+
+	.gladia-settings-modal
+		:global(
+			input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='file']):not(
+					[hidden]
+				):focus
+		),
+	.gladia-settings-modal :global(select:focus),
+	.gladia-settings-modal :global(textarea:focus) {
+		border-color: rgba(111, 76, 255, 0.82) !important;
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.04),
+			0 0 0 3px rgba(111, 76, 255, 0.18),
+			0 0 24px rgba(111, 76, 255, 0.1) !important;
+	}
+
+	.gladia-settings-modal :global(input::placeholder),
+	.gladia-settings-modal :global(textarea::placeholder) {
+		color: #66726f !important;
+	}
+
+	.gladia-settings-modal :global(select option) {
+		background: var(--gladia-surface);
+		color: var(--gladia-text);
+	}
+
+	.gladia-settings-modal :global(input[type='range']) {
+		width: 100%;
+		height: 0.35rem;
+		border-radius: 999px;
+		accent-color: var(--gladia-primary);
+		background: #273241;
+		cursor: pointer;
+	}
+
+	.gladia-settings-modal :global(input[type='range']::-webkit-slider-runnable-track) {
+		height: 0.35rem;
+		border-radius: 999px;
+		background: linear-gradient(90deg, var(--gladia-primary), #8f73ff);
+	}
+
+	.gladia-settings-modal :global(input[type='range']::-webkit-slider-thumb) {
+		width: 1rem;
+		height: 1rem;
+		margin-top: -0.33rem;
+		border: 2px solid #c9c0ff;
+		border-radius: 999px;
+		background: #f5f3ff;
+		box-shadow: 0 0 0 4px rgba(111, 76, 255, 0.16);
+		appearance: none;
+	}
+
+	.gladia-settings-modal :global(input[type='range']::-moz-range-track) {
+		height: 0.35rem;
+		border-radius: 999px;
+		background: #273241;
+	}
+
+	.gladia-settings-modal :global(input[type='range']::-moz-range-progress) {
+		height: 0.35rem;
+		border-radius: 999px;
+		background: var(--gladia-primary);
+	}
+
+	.gladia-settings-modal :global(input[type='range']::-moz-range-thumb) {
+		width: 1rem;
+		height: 1rem;
+		border: 2px solid #c9c0ff;
+		border-radius: 999px;
+		background: #f5f3ff;
+		box-shadow: 0 0 0 4px rgba(111, 76, 255, 0.16);
+	}
+
+	.gladia-settings-modal :global(button:not([role='tab'])) {
+		letter-spacing: 0;
+		transition:
+			background 160ms ease,
+			border-color 160ms ease,
+			color 160ms ease,
+			box-shadow 160ms ease,
+			transform 120ms ease;
+	}
+
+	.gladia-settings-modal :global(button:not([role='tab']):active) {
+		transform: translateY(1px);
+	}
+
+	.gladia-settings-modal :global(button[class*='bg-black']),
+	.gladia-settings-modal :global(button[class*='dark:bg-white']) {
+		border: 1px solid rgba(143, 115, 255, 0.55) !important;
+		border-radius: 0.5rem !important;
+		background: linear-gradient(180deg, #7a5cff, var(--gladia-primary)) !important;
+		color: #ffffff !important;
+		box-shadow:
+			0 10px 26px rgba(111, 76, 255, 0.24),
+			inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+	}
+
+	.gladia-settings-modal :global(button[class*='bg-black']:hover),
+	.gladia-settings-modal :global(button[class*='dark:bg-white']:hover) {
+		background: linear-gradient(180deg, #8f73ff, #7557ff) !important;
+		box-shadow:
+			0 12px 30px rgba(111, 76, 255, 0.32),
+			inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+	}
+
+	.gladia-settings-modal :global(button[role='switch']) {
+		min-width: 4.25rem;
+		justify-content: center;
+		border: 1px solid rgba(39, 50, 65, 0.86) !important;
+		border-radius: 999px !important;
+		background: rgba(15, 23, 32, 0.86) !important;
+		color: var(--gladia-muted) !important;
+	}
+
+	.gladia-settings-modal :global(button[role='switch'][aria-checked='true']) {
+		border-color: rgba(111, 76, 255, 0.7) !important;
+		background: rgba(111, 76, 255, 0.16) !important;
+		color: #ffffff !important;
+	}
+
+	.gladia-settings-modal :global(button:not([role='tab']):focus-visible),
+	.gladia-settings-modal :global(a:focus-visible) {
+		outline: 2px solid rgba(111, 76, 255, 0.72) !important;
+		outline-offset: 2px;
+	}
+
+	.gladia-settings-modal :global(.overflow-y-scroll),
+	.gladia-settings-modal :global(.overflow-y-auto) {
+		scrollbar-color: rgba(111, 76, 255, 0.42) transparent;
+	}
+
+	@media (max-width: 767px) {
+		.gladia-settings-modal :global([role='tab'][aria-selected='true']) {
+			box-shadow:
+				inset 0 -3px 0 var(--gladia-primary),
+				0 0 22px rgba(111, 76, 255, 0.1);
+		}
 	}
 </style>

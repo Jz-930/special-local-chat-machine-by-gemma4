@@ -208,7 +208,7 @@
 	};
 
 	onMount(() => {
-		const mediaQuery = window.matchMedia('(min-width: 1024px)');
+		const mediaQuery = window.matchMedia('(min-width: 1180px)');
 		mediaQuery.addEventListener('change', handleMediaQuery);
 		handleMediaQuery(mediaQuery);
 

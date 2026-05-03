@@ -625,14 +625,14 @@
 		dir={$settings.chatDirection}
 		style="scroll-margin-top: 3rem;"
 	>
-		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 hidden @lg:flex mt-1 flex items-center justify-center size-8 rounded-full bg-blue-500/20 text-blue-500`}>
+		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 hidden @lg:flex mt-1 flex items-center justify-center size-8 rounded-full border border-primary-300/15 bg-primary-400/10 text-primary-200`}>
 			<Computer className="size-5" />
 		</div>
 
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
 				<Tooltip content={model?.name ?? message.model} placement="top-start">
-					<span id="response-message-model-name" class="flex items-center gap-1.5 line-clamp-1 text-blue-500 font-medium">
+					<span id="response-message-model-name" class="flex items-center gap-1.5 line-clamp-1 text-primary-200/90 font-medium">
 						<Computer className="size-3.5" />
 						{model?.name ?? message.model}
 					</span>
@@ -658,7 +658,7 @@
 			</Name>
 
 			<div>
-				<div class="chat-{message.role} w-full min-w-full markdown-prose text-lg leading-loose">
+				<div class="chat-{message.role} w-full min-w-full markdown-prose text-[0.98rem] leading-7 text-gray-100">
 					<div>
 						{#if model?.info?.meta?.capabilities?.status_updates ?? true}
 							<StatusHistory statusHistory={message?.statusHistory} />
@@ -708,7 +708,7 @@
 						{/if}
 
 						{#if edit === true}
-							<div class="w-full bg-gray-50 dark:bg-gray-800 rounded-3xl px-5 py-3 my-2">
+							<div class="w-full rounded-[1.65rem] border border-white/10 bg-gray-900/90 px-5 py-3 my-2 text-gray-100 shadow-[0_18px_46px_rgba(0,0,0,0.34)]">
 								<textarea
 									id="message-edit-{message.id}"
 									bind:this={editTextAreaElement}
@@ -741,7 +741,7 @@
 									<div>
 										<button
 											id="save-new-message-button"
-											class="px-3.5 py-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 transition rounded-3xl"
+											class="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 transition rounded-3xl"
 											on:click={() => {
 												saveAsCopyHandler();
 											}}
@@ -753,7 +753,7 @@
 									<div class="flex space-x-1.5">
 										<button
 											id="close-edit-message-button"
-											class="px-3.5 py-1.5 bg-white dark:bg-gray-900 hover:bg-gray-100 text-gray-800 dark:text-gray-100 transition rounded-3xl"
+											class="px-3.5 py-1.5 bg-transparent hover:bg-white/5 text-gray-300 transition rounded-3xl"
 											on:click={() => {
 												cancelEditMessage();
 											}}
@@ -763,7 +763,7 @@
 
 										<button
 											id="confirm-edit-message-button"
-											class="px-3.5 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-850 text-gray-100 dark:text-gray-800 transition rounded-3xl"
+											class="px-3.5 py-1.5 bg-primary-200 hover:bg-primary-100 text-gray-950 transition rounded-3xl"
 											on:click={() => {
 												editMessageConfirmHandler();
 											}}
@@ -777,7 +777,7 @@
 
 						<div
 							bind:this={contentContainerElement}
-							class="w-full flex flex-col relative {edit ? 'hidden' : ''}"
+							class="response-message-surface w-full flex flex-col relative {edit ? 'hidden' : ''}"
 							id="response-content-container"
 						>
 							{#if message.content === '' && !message.done && !message.error && !hasVisibleStatus}
@@ -850,7 +850,9 @@
 				{#if !edit}
 					<div
 						bind:this={buttonsContainerElement}
-						class="flex justify-start overflow-x-auto buttons text-gray-600 dark:text-gray-500 mt-0.5"
+						class="message-action-tray flex w-fit max-w-full overflow-x-auto buttons text-gray-400 mt-1 {($settings?.highContrastMode ?? false)
+							? ''
+							: 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'} transition-all duration-200"
 					>
 						{#if message.done || siblings.length > 1}
 							{#if siblings.length > 1}
@@ -1305,7 +1307,7 @@
 														aria-label={$i18n.t('Regenerate')}
 														class="{isLastMessage
 															? 'visible'
-															: 'invisible group-hover:visible'} p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"
+															: 'invisible group-hover:visible'} message-action-button p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg dark:hover:text-white hover:text-black transition"
 													>
 														<svg
 															xmlns="http://www.w3.org/2000/svg"

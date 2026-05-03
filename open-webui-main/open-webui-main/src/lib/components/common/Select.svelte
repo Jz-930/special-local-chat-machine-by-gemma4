@@ -22,11 +22,11 @@
 
 	/** CSS classes for the dropdown content container */
 	export let contentClass =
-		'rounded-2xl min-w-[170px] p-1 border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-850 dark:text-white shadow-lg';
+		'min-w-[170px] rounded-xl border border-gray-200/70 bg-white p-1 text-gray-900 shadow-2xl shadow-black/10 dark:border-gray-700/70 dark:bg-gray-900 dark:text-gray-100 dark:shadow-black/50';
 
 	/** CSS classes for each item button */
 	export let itemClass =
-		'flex w-full gap-2 items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl';
+		'flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition hover:bg-primary-500/10 hover:text-primary-700 dark:hover:bg-primary-500/15 dark:hover:text-primary-200';
 
 	/** Alignment of the dropdown: 'start' | 'end' */
 	export let align = 'start';

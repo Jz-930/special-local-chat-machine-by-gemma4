@@ -146,7 +146,9 @@
 
 	async function bulkMove(groupId: string) {
 		if (selectedIds.size === 0) return;
-		await persistLibrary(moveFragmentsToGroup(library, selectedIds, groupId === 'ungrouped' ? null : groupId));
+		await persistLibrary(
+			moveFragmentsToGroup(library, selectedIds, groupId === 'ungrouped' ? null : groupId)
+		);
 		clearSelection();
 		activeGroupId = groupId;
 	}
@@ -207,7 +209,9 @@
 	async function saveGroup() {
 		if (!editingGroup) return;
 		const nextGroups = groups.map((group) =>
-			group.id === editingGroup?.id ? { ...editingGroup, name: editingGroup.name.trim() || '未命名分组' } : group
+			group.id === editingGroup?.id
+				? { ...editingGroup, name: editingGroup.name.trim() || '未命名分组' }
+				: group
 		);
 		await persistLibrary({ ...library, groups: nextGroups });
 		editingGroup = null;
@@ -283,14 +287,17 @@
 
 <div
 	class="flex flex-col w-full h-screen max-h-[100dvh] transition-width duration-200 ease-in-out {$showSidebar
-		? 'md:max-w-[calc(100%-var(--sidebar-width))]'
+		? 'lg:max-w-[calc(100%-var(--sidebar-width))]'
 		: ''} max-w-full"
 >
 	<nav class="px-2 pt-1.5 backdrop-blur-xl w-full drag-region shrink-0">
 		<div class="flex items-center">
 			{#if $mobile}
-				<div class="{$showSidebar ? 'md:hidden' : ''} flex flex-none items-center">
-					<Tooltip content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')} interactive={true}>
+				<div class="{$showSidebar ? 'lg:hidden' : ''} flex flex-none items-center">
+					<Tooltip
+						content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
+						interactive={true}
+					>
 						<button
 							id="sidebar-toggle-button"
 							class="cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
@@ -364,8 +371,12 @@
 			</div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-3 min-h-0 flex-1">
-				<aside class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden flex flex-col min-h-[180px] lg:min-h-0">
-					<div class="px-3 py-2 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+				<aside
+					class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden flex flex-col min-h-[180px] lg:min-h-0"
+				>
+					<div
+						class="px-3 py-2 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between"
+					>
 						<div class="text-sm font-medium text-gray-900 dark:text-gray-100">分组</div>
 						{#if saving}
 							<div class="text-xs text-gray-500">保存中</div>
@@ -387,9 +398,14 @@
 								: 'hover:bg-gray-100 dark:hover:bg-gray-850 text-gray-700 dark:text-gray-200'}"
 							on:click={() => (activeGroupId = 'ungrouped')}
 						>
-							<span class="inline-block size-2 rounded-full mr-2" style={`background:${ungroupedOption.color}`}></span>
+							<span
+								class="inline-block size-2 rounded-full mr-2"
+								style={`background:${ungroupedOption.color}`}
+							></span>
 							未分组
-							<span class="float-right text-xs opacity-70">{library.fragments.filter((f) => !f.group_id).length}</span>
+							<span class="float-right text-xs opacity-70"
+								>{library.fragments.filter((f) => !f.group_id).length}</span
+							>
 						</button>
 
 						<div use:initSortableGroups class="space-y-1">
@@ -412,7 +428,10 @@
 											class="min-w-0 flex-1 text-left px-1 py-2 rounded-md text-sm hover:bg-gray-100 dark:hover:bg-gray-850 text-gray-700 dark:text-gray-200"
 											on:click={() => (activeGroupId = group.id)}
 										>
-											<span class="inline-block size-2 rounded-full mr-2" style={`background:${group.color}`}></span>
+											<span
+												class="inline-block size-2 rounded-full mr-2"
+												style={`background:${group.color}`}
+											></span>
 											<span class="truncate">{group.name}</span>
 											<span class="float-right text-xs opacity-70">
 												{library.fragments.filter((f) => f.group_id === group.id).length}
@@ -420,10 +439,16 @@
 										</button>
 									</div>
 									<div class="flex items-center gap-1 px-2 pb-2">
-										<button class="text-xs px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-850" on:click={() => editGroup(group)}>
+										<button
+											class="text-xs px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-850"
+											on:click={() => editGroup(group)}
+										>
 											编辑
 										</button>
-										<button class="text-xs px-2 py-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20" on:click={() => removeGroup(group)}>
+										<button
+											class="text-xs px-2 py-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+											on:click={() => removeGroup(group)}
+										>
 											删除
 										</button>
 									</div>
@@ -433,10 +458,16 @@
 					</div>
 				</aside>
 
-				<section class="min-h-0 flex flex-col border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-					<div class="px-3 py-2 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2">
+				<section
+					class="min-h-0 flex flex-col border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden"
+				>
+					<div
+						class="px-3 py-2 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center justify-between gap-2"
+					>
 						<div class="flex items-center gap-2">
-							<div class="text-sm font-medium text-gray-900 dark:text-gray-100">{activeGroupName}</div>
+							<div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+								{activeGroupName}
+							</div>
 							<div class="text-xs text-gray-500">{visibleFragments.length} 个</div>
 						</div>
 						<input
@@ -447,9 +478,14 @@
 					</div>
 
 					{#if selectionMode}
-						<div class="px-3 py-2 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-gray-900">
+						<div
+							class="px-3 py-2 border-b border-gray-200 dark:border-gray-800 flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-gray-900"
+						>
 							<div class="text-xs text-gray-500">已选 {selectedCount} 个碎片</div>
-							<button class="text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700" on:click={selectVisible}>
+							<button
+								class="text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700"
+								on:click={selectVisible}
+							>
 								选择当前列表
 							</button>
 							<select
@@ -491,8 +527,14 @@
 											title="分组颜色"
 										/>
 										<div class="flex gap-2">
-											<button class="px-3 py-2 text-sm rounded-md bg-blue-600 text-white" on:click={saveGroup}>保存</button>
-											<button class="px-3 py-2 text-sm rounded-md border border-gray-200 dark:border-gray-700" on:click={() => (editingGroup = null)}>
+											<button
+												class="px-3 py-2 text-sm rounded-md bg-blue-600 text-white"
+												on:click={saveGroup}>保存</button
+											>
+											<button
+												class="px-3 py-2 text-sm rounded-md border border-gray-200 dark:border-gray-700"
+												on:click={() => (editingGroup = null)}
+											>
 												取消
 											</button>
 										</div>
@@ -501,7 +543,9 @@
 							{/if}
 
 							{#if editingFragment}
-								<div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col gap-3 min-h-[50dvh]">
+								<div
+									class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col gap-3 min-h-[50dvh]"
+								>
 									<input
 										bind:value={editingFragment.title}
 										placeholder="碎片标题"
@@ -522,22 +566,32 @@
 										class="w-full flex-1 min-h-[260px] bg-transparent text-sm border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-blue-500"
 									></textarea>
 									<div class="flex justify-end gap-2">
-										<button class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm" on:click={() => (editingFragment = null)}>
+										<button
+											class="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm"
+											on:click={() => (editingFragment = null)}
+										>
 											取消
 										</button>
-										<button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm" on:click={saveEditedFragment}>
+										<button
+											class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm"
+											on:click={saveEditedFragment}
+										>
 											保存
 										</button>
 									</div>
 								</div>
 							{:else if visibleFragments.length > 0}
-								<div use:initSortableFragments class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+								<div
+									use:initSortableFragments
+									class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+								>
 									{#each visibleFragments as fragment (fragment.id)}
 										<!-- svelte-ignore a11y_click_events_have_key_events -->
 										<!-- svelte-ignore a11y_no_static_element_interactions -->
 										<div
 											class="border border-gray-200 dark:border-gray-800 rounded-lg p-4 flex flex-col min-h-44 hover:border-blue-400 dark:hover:border-blue-600 transition cursor-pointer"
-											on:click={() => (selectionMode ? toggleSelection(fragment.id) : editFragment(fragment))}
+											on:click={() =>
+												selectionMode ? toggleSelection(fragment.id) : editFragment(fragment)}
 										>
 											<div class="flex items-start justify-between gap-2 mb-2">
 												<div class="min-w-0">
@@ -550,21 +604,35 @@
 														>
 															<MenuLines className="size-4" strokeWidth="1.5" />
 														</button>
-														<div class="font-medium text-gray-900 dark:text-gray-100 truncate">{fragment.title || '未命名碎片'}</div>
+														<div class="font-medium text-gray-900 dark:text-gray-100 truncate">
+															{fragment.title || '未命名碎片'}
+														</div>
 													</div>
 													<div class="text-xs text-gray-500 mt-1">
-														{groups.find((group) => group.id === fragment.group_id)?.name || '未分组'}
+														{groups.find((group) => group.id === fragment.group_id)?.name ||
+															'未分组'}
 													</div>
 												</div>
 												{#if selectionMode}
-													<input type="checkbox" checked={selectedIds.has(fragment.id)} on:click|stopPropagation={() => toggleSelection(fragment.id)} />
+													<input
+														type="checkbox"
+														checked={selectedIds.has(fragment.id)}
+														on:click|stopPropagation={() => toggleSelection(fragment.id)}
+													/>
 												{/if}
 											</div>
-											<div class="text-sm text-gray-600 dark:text-gray-400 line-clamp-6 whitespace-pre-wrap flex-1">
+											<div
+												class="text-sm text-gray-600 dark:text-gray-400 line-clamp-6 whitespace-pre-wrap flex-1"
+											>
 												{fragment.content || '无内容'}
 											</div>
-											<div class="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-gray-100 dark:border-gray-800">
-												<button class="text-xs px-2 py-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20" on:click|stopPropagation={() => deleteFragment(fragment.id)}>
+											<div
+												class="flex items-center justify-end gap-2 pt-3 mt-3 border-t border-gray-100 dark:border-gray-800"
+											>
+												<button
+													class="text-xs px-2 py-1 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+													on:click|stopPropagation={() => deleteFragment(fragment.id)}
+												>
 													删除
 												</button>
 											</div>
@@ -572,7 +640,9 @@
 									{/each}
 								</div>
 							{:else}
-								<div class="text-center text-gray-500 text-sm py-16 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+								<div
+									class="text-center text-gray-500 text-sm py-16 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg"
+								>
 									当前范围没有碎片。
 								</div>
 							{/if}

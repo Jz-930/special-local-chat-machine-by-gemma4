@@ -110,7 +110,7 @@
 
 	let heartbeatInterval = null;
 
-	const BREAKPOINT = 768;
+	const BREAKPOINT = 1024;
 
 	const setupSocket = async (enableWebsocket) => {
 		const _socket = io(`${WEBUI_BASE_URL}` || undefined, {
@@ -819,11 +819,7 @@
 	};
 
 	const windowMessageEventHandler = async (event) => {
-		if (
-			!['http://localhost:9999'].includes(
-				event.origin
-			)
-		) {
+		if (!['http://localhost:9999'].includes(event.origin)) {
 			return;
 		}
 
@@ -1147,9 +1143,4 @@
 	<SyncStatsModal bind:show={showSyncStatsModal} eventData={syncStatsEventData} />
 {/if}
 
-<Toaster
-	theme="dark"
-	richColors
-	position="top-right"
-	closeButton
-/>
+<Toaster theme="dark" richColors position="top-right" closeButton />

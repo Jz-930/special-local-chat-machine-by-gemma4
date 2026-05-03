@@ -352,19 +352,16 @@
 
 		loaded = true;
 	});
-
-
 </script>
 
 <SettingsModal bind:show={$showSettings} />
 <ChangelogModal bind:show={$showChangelog} />
 
-
-
 {#if $user}
-	<div class="app relative">
+	<div class="app relative z-0">
+		<div class="gladia-spotlight hidden dark:block"></div>
 		<div
-			class=" text-gray-700 dark:text-gray-100 bg-white dark:bg-gray-900 h-screen max-h-[100dvh] overflow-auto flex flex-row justify-end"
+			class="app-viewport text-gray-700 dark:text-gray-100 bg-white dark:bg-transparent flex flex-row justify-end"
 		>
 			{#if !['user', 'admin'].includes($user?.role)}
 				<AccountPending />
@@ -430,9 +427,9 @@
 					<slot />
 				{:else}
 					<div
-						class="w-full flex-1 h-full flex items-center justify-center {$showSidebar
-							? '  md:max-w-[calc(100%-var(--sidebar-width))]'
-							: ' '}"
+						class="app-main-pane w-full flex items-center justify-center {$showSidebar
+							? 'app-main-pane--with-sidebar'
+							: ''}"
 					>
 						<Spinner className="size-5" />
 					</div>

@@ -74,12 +74,12 @@
 <div
 	id="sidebar-channel-item"
 	bind:this={itemElement}
-	class=" w-full {className} rounded-xl flex relative group hover:bg-gray-100 dark:hover:bg-gray-900 {$page
-		.url.pathname === `/channels/${channel.id}`
-		? 'bg-gray-100 dark:bg-gray-900 selected'
+	class="gladia-sidebar-row w-full {className} rounded-xl flex relative group {$page.url
+		.pathname === `/channels/${channel.id}`
+		? 'gladia-sidebar-row--active selected'
 		: ''} {channel?.type === 'dm' ? 'px-1 py-[3px]' : 'p-1'}  {channel?.unread_count > 0
-		? 'font-medium dark:text-white text-black'
-		: ' dark:text-gray-400 text-gray-600'} cursor-pointer select-none"
+		? 'font-semibold text-white'
+		: ''} cursor-pointer select-none"
 >
 	<a
 		class=" w-full flex justify-between"
@@ -191,7 +191,7 @@
 		<div class="flex items-center">
 			{#if channel?.unread_count > 0}
 				<div
-					class="text-xs py-[1px] px-2 rounded-xl bg-gray-100 text-black dark:bg-gray-800 dark:text-white font-medium whitespace-nowrap"
+					class="text-xs py-[1px] px-2 rounded-xl bg-primary-500/20 text-primary-100 font-medium whitespace-nowrap"
 				>
 					{new Intl.NumberFormat($i18n.locale, {
 						notation: 'compact',
@@ -208,7 +208,7 @@
 		>
 			<button
 				type="button"
-				class="p-0.5 dark:hover:bg-gray-850 rounded-lg touch-auto"
+				class="gladia-sidebar-menu-icon touch-auto"
 				on:click={async (e) => {
 					e.stopImmediatePropagation();
 					e.stopPropagation();
@@ -235,7 +235,7 @@
 		>
 			<button
 				type="button"
-				class="p-0.5 dark:hover:bg-gray-850 rounded-lg touch-auto"
+				class="gladia-sidebar-menu-icon touch-auto"
 				on:click={(e) => {
 					e.stopImmediatePropagation();
 					e.stopPropagation();

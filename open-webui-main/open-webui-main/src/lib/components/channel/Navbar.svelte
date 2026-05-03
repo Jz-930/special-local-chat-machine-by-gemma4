@@ -54,19 +54,21 @@
 
 <PinnedMessagesModal bind:show={showChannelPinnedMessagesModal} {channel} {onPin} />
 <ChannelInfoModal bind:show={showChannelInfoModal} {channel} {onUpdate} />
-<nav class="sticky top-0 z-30 w-full px-1.5 py-1 -mb-8 flex items-center drag-region flex flex-col">
+<nav
+	class="sticky top-0 z-30 w-full px-2 sm:px-3 py-1 -mb-8 flex items-center drag-region flex flex-col"
+>
 	<div
 		id="navbar-bg-gradient-to-b"
-		class=" bg-linear-to-b via-50% from-white via-white to-transparent dark:from-gray-900 dark:via-gray-900 dark:to-transparent pointer-events-none absolute inset-0 -bottom-7 z-[-1]"
+		class="gladia-navbar-gradient pointer-events-none absolute inset-x-0 top-0 -bottom-7 z-[-1]"
 	></div>
 
-	<div class=" flex max-w-full w-full mx-auto px-1 pt-0.5 bg-transparent">
+	<div class="gladia-navbar-shell flex max-w-full w-full mx-auto px-2 py-1 bg-transparent">
 		<div class="flex items-center w-full max-w-full">
 			{#if $mobile}
 				<div
 					class="{$showSidebar
-						? 'md:hidden'
-						: ''} mr-1.5 mt-0.5 self-start flex flex-none items-center text-gray-600 dark:text-gray-400"
+						? 'lg:hidden'
+						: ''} mr-1.5 mt-0.5 self-start flex flex-none items-center text-gray-400"
 				>
 					<Tooltip
 						content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
@@ -74,7 +76,7 @@
 					>
 						<button
 							id="sidebar-toggle-button"
-							class=" cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition cursor-"
+							class="gladia-navbar-icon-button cursor-pointer flex rounded-lg transition"
 							on:click={() => {
 								showSidebar.set(!$showSidebar);
 							}}
@@ -154,13 +156,11 @@
 				{/if}
 			</div>
 
-			<div
-				class="self-start flex flex-none items-center text-gray-600 dark:text-gray-400 gap-1 shrink-0"
-			>
+			<div class="self-start flex flex-none items-center text-gray-400 gap-1 shrink-0">
 				{#if channel}
 					<Tooltip content={$i18n.t('Pinned Messages')}>
 						<button
-							class=" flex cursor-pointer py-1.5 px-1.5 border dark:border-gray-850 border-gray-50 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+							class="gladia-navbar-icon-button flex cursor-pointer py-1.5 px-1.5 border gladia-navbar-divider rounded-xl transition"
 							aria-label="Pinned Messages"
 							type="button"
 							on:click={() => {
@@ -176,7 +176,7 @@
 					{#if channel?.user_count !== undefined}
 						<Tooltip content={$i18n.t('Users')}>
 							<button
-								class=" flex cursor-pointer shrink-0 py-1 px-1.5 border dark:border-gray-850 border-gray-50 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								class="gladia-navbar-icon-button flex cursor-pointer shrink-0 py-1 px-1.5 border gladia-navbar-divider rounded-xl transition"
 								aria-label="User Count"
 								type="button"
 								on:click={() => {
@@ -208,7 +208,7 @@
 							}}
 						>
 							<button
-								class="select-none flex rounded-xl p-1.5 w-full hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+								class="gladia-navbar-icon-button select-none flex rounded-xl p-1.5 w-full transition"
 								aria-label="User Menu"
 							>
 								<div class=" self-center">

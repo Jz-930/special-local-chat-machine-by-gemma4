@@ -198,7 +198,7 @@
 			</div>
 		{/if}
 
-		<div class="chat-{message.role} w-full min-w-full markdown-prose text-lg leading-loose">
+		<div class="chat-{message.role} w-full min-w-full markdown-prose text-[0.98rem] leading-7">
 			{#if edit !== true}
 				{#if message.files}
 					<div
@@ -230,7 +230,7 @@
 			{/if}
 
 			{#if edit === true}
-				<div class=" w-full bg-gray-50 dark:bg-gray-800 rounded-3xl px-5 py-3 mb-2">
+				<div class="w-full rounded-[1.65rem] border border-white/10 bg-gray-900/90 px-5 py-3 mb-2 text-gray-100 shadow-[0_18px_46px_rgba(0,0,0,0.34)]">
 					{#if (editedFiles ?? []).length > 0}
 						<div class="flex items-center flex-wrap gap-2 -mx-2 mb-1">
 							{#each editedFiles as file, fileIdx}
@@ -332,7 +332,7 @@
 						<div>
 							<button
 								id="save-edit-message-button"
-								class="px-3.5 py-1.5 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 transition rounded-3xl"
+								class="px-3.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 transition rounded-3xl"
 								on:click={() => {
 									editMessageConfirmHandler(false);
 								}}
@@ -344,7 +344,7 @@
 						<div class="flex space-x-1.5">
 							<button
 								id="close-edit-message-button"
-								class="px-3.5 py-1.5 bg-white dark:bg-gray-900 hover:bg-gray-100 text-gray-800 dark:text-gray-100 transition rounded-3xl"
+								class="px-3.5 py-1.5 bg-transparent hover:bg-white/5 text-gray-300 transition rounded-3xl"
 								on:click={() => {
 									cancelEditMessage();
 								}}
@@ -354,7 +354,7 @@
 
 							<button
 								id="confirm-edit-message-button"
-								class="px-3.5 py-1.5 bg-gray-900 dark:bg-white hover:bg-gray-850 text-gray-100 dark:text-gray-800 transition rounded-3xl"
+								class="px-3.5 py-1.5 bg-primary-200 hover:bg-primary-100 text-gray-950 transition rounded-3xl"
 								on:click={() => {
 									editMessageConfirmHandler();
 								}}
@@ -368,8 +368,8 @@
 				<div class="w-full">
 					<div class="flex {($settings?.chatBubble ?? true) ? 'justify-end pb-1' : 'w-full'}">
 						<div
-							class="rounded-3xl {($settings?.chatBubble ?? true)
-								? `max-w-[90%] px-4 py-1.5  bg-gray-50 dark:bg-gray-850 ${
+							class="rounded-[1.65rem] {($settings?.chatBubble ?? true)
+								? `max-w-[90%] sm:max-w-[48rem] px-5 py-3 bg-gray-850/90 text-gray-100 border border-white/10 shadow-[0_16px_48px_rgba(0,0,0,0.34)] ${
 										message.files ? 'rounded-tr-lg' : ''
 									}`
 								: ' w-full'}"
@@ -389,9 +389,11 @@
 
 			{#if edit !== true}
 				<div
-					class=" flex {($settings?.chatBubble ?? true)
-						? 'justify-end'
-						: ''}  text-gray-600 dark:text-gray-500"
+					class="message-action-tray flex w-fit max-w-full {($settings?.chatBubble ?? true)
+						? 'ml-auto'
+						: ''} {($settings?.highContrastMode ?? false)
+						? ''
+						: 'opacity-0 group-hover:opacity-100 focus-within:opacity-100'} text-gray-400 transition-all duration-200"
 				>
 					{#if !($settings?.chatBubble ?? true)}
 						{#if siblings.length > 1}

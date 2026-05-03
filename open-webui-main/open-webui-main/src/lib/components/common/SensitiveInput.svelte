@@ -8,9 +8,12 @@
 	export let type = 'text';
 	export let required = true;
 	export let readOnly = false;
-	export let outerClassName = 'flex flex-1 bg-transparent';
-	export let inputClassName = 'w-full text-sm py-0.5 bg-transparent';
-	export let showButtonClassName = 'pl-1.5  transition bg-transparent';
+	export let outerClassName =
+		'flex flex-1 items-center rounded-lg border border-gray-200/70 bg-gray-50 px-3 py-1.5 shadow-inner transition focus-within:border-primary-500/70 focus-within:ring-2 focus-within:ring-primary-500/15 dark:border-gray-700/70 dark:bg-gray-850 dark:focus-within:border-primary-500/80 dark:focus-within:ring-primary-500/20';
+	export let inputClassName =
+		'w-full bg-transparent py-0.5 text-sm text-gray-900 dark:text-gray-200';
+	export let showButtonClassName =
+		'pl-2 text-gray-500 transition hover:text-primary-500 dark:text-gray-400 dark:hover:text-primary-300 bg-transparent';
 	export let screenReader = true;
 	export let autocomplete = 'off';
 

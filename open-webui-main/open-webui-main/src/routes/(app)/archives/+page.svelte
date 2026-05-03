@@ -106,7 +106,9 @@
 			let packDir;
 			try {
 				packDir = await rootHandle.getDirectoryHandle(payload.pack_name);
-				if (!confirm(`目录中已存在档案包“${payload.pack_name}”，继续会覆盖同名档案文件。是否继续？`)) {
+				if (
+					!confirm(`目录中已存在档案包“${payload.pack_name}”，继续会覆盖同名档案文件。是否继续？`)
+				) {
 					return;
 				}
 			} catch {
@@ -316,7 +318,10 @@
 		}
 	}
 
-	async function readDirectoryFiles(directoryHandle: any, prefix = ''): Promise<Record<string, string>> {
+	async function readDirectoryFiles(
+		directoryHandle: any,
+		prefix = ''
+	): Promise<Record<string, string>> {
 		const files: Record<string, string> = {};
 		for await (const [name, handle] of directoryHandle.entries()) {
 			const relativePath = prefix ? `${prefix}/${name}` : name;
@@ -337,14 +342,17 @@
 
 <div
 	class="flex flex-col w-full h-screen max-h-[100dvh] transition-width duration-200 ease-in-out {$showSidebar
-		? 'md:max-w-[calc(100%-var(--sidebar-width))]'
+		? 'lg:max-w-[calc(100%-var(--sidebar-width))]'
 		: ''} max-w-full"
 >
 	<nav class="px-2 pt-1.5 backdrop-blur-xl w-full drag-region shrink-0">
 		<div class="flex items-center">
 			{#if $mobile}
-				<div class="{$showSidebar ? 'md:hidden' : ''} flex flex-none items-center">
-					<Tooltip content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')} interactive={true}>
+				<div class="{$showSidebar ? 'lg:hidden' : ''} flex flex-none items-center">
+					<Tooltip
+						content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
+						interactive={true}
+					>
 						<button
 							id="sidebar-toggle-button"
 							class="cursor-pointer flex rounded-lg hover:bg-gray-100 dark:hover:bg-gray-850 transition"
@@ -386,20 +394,26 @@
 			<div>
 				<div class="text-xl font-semibold text-gray-900 dark:text-gray-100">档案管理</div>
 				<div class="text-sm text-gray-500 mt-1">
-					把对话、归档对话、普通 Notes、记忆抽屉、碎片库和系统记忆导出为文件夹，也可以从文件夹导入或清空当前使用资料。
+					把对话、归档对话、普通
+					Notes、记忆抽屉、碎片库和系统记忆导出为文件夹，也可以从文件夹导入或清空当前使用资料。
 				</div>
 			</div>
 
 			<section class="border border-gray-200 dark:border-gray-800 rounded-lg p-4">
 				<div class="flex items-center justify-between gap-2 mb-3">
 					<div class="text-sm font-medium">导出范围</div>
-					<button class="text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700" on:click={() => (scope = { ...defaultScope })}>
+					<button
+						class="text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700"
+						on:click={() => (scope = { ...defaultScope })}
+					>
 						恢复默认
 					</button>
 				</div>
 				<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
 					{#each Object.entries(scopeLabels) as [key, label]}
-						<label class="flex items-center gap-2 text-sm border border-gray-200 dark:border-gray-800 rounded-md px-3 py-2">
+						<label
+							class="flex items-center gap-2 text-sm border border-gray-200 dark:border-gray-800 rounded-md px-3 py-2"
+						>
 							<input type="checkbox" bind:checked={scope[key]} />
 							<span>{label}</span>
 						</label>
@@ -411,7 +425,9 @@
 				<section class="border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-3">
 					<div>
 						<div class="text-sm font-medium">导出到本机 / U盘目录</div>
-						<div class="text-xs text-gray-500 mt-1">点击后会弹出目录选择，在你选的目录下生成一个完整档案包文件夹。</div>
+						<div class="text-xs text-gray-500 mt-1">
+							点击后会弹出目录选择，在你选的目录下生成一个完整档案包文件夹。
+						</div>
 					</div>
 					<input
 						bind:value={packName}
@@ -419,10 +435,18 @@
 						placeholder="档案包名称，留空自动生成"
 					/>
 					<div class="flex flex-wrap gap-2">
-						<button class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm disabled:opacity-40" disabled={working} on:click={runDiskExport}>
+						<button
+							class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm disabled:opacity-40"
+							disabled={working}
+							on:click={runDiskExport}
+						>
 							选择目录并导出
 						</button>
-						<button class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm disabled:opacity-40" disabled={working} on:click={runExport}>
+						<button
+							class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm disabled:opacity-40"
+							disabled={working}
+							on:click={runExport}
+						>
 							导出到服务器暂存区
 						</button>
 					</div>
@@ -432,13 +456,21 @@
 					<div class="flex items-center justify-between">
 						<div>
 							<div class="text-sm font-medium">从本机 / U盘导入</div>
-							<div class="text-xs text-gray-500 mt-1">选择档案包文件夹本身，也就是包含 manifest.json 的那个目录。</div>
+							<div class="text-xs text-gray-500 mt-1">
+								选择档案包文件夹本身，也就是包含 manifest.json 的那个目录。
+							</div>
 						</div>
-						<button class="text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700" on:click={refreshPacks}>
+						<button
+							class="text-xs px-2 py-1 rounded border border-gray-200 dark:border-gray-700"
+							on:click={refreshPacks}
+						>
 							刷新
 						</button>
 					</div>
-					<select bind:value={selectedPack} class="w-full bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 text-sm">
+					<select
+						bind:value={selectedPack}
+						class="w-full bg-transparent border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 text-sm"
+					>
 						<option value="">选择档案包</option>
 						{#each packs as pack}
 							<option value={pack.name}>{pack.name}</option>
@@ -462,16 +494,32 @@
 						/>
 					{/if}
 					<div class="flex flex-wrap gap-2">
-						<button class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm disabled:opacity-40" disabled={working} on:click={runDiskInspect}>
+						<button
+							class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm disabled:opacity-40"
+							disabled={working}
+							on:click={runDiskInspect}
+						>
 							选择文件夹并检查
 						</button>
-						<button class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm disabled:opacity-40" disabled={working} on:click={runDiskImport}>
+						<button
+							class="px-3 py-2 rounded-md bg-blue-600 text-white text-sm disabled:opacity-40"
+							disabled={working}
+							on:click={runDiskImport}
+						>
 							选择文件夹并导入
 						</button>
-						<button class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm disabled:opacity-40" disabled={!selectedPack || working} on:click={runInspect}>
+						<button
+							class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm disabled:opacity-40"
+							disabled={!selectedPack || working}
+							on:click={runInspect}
+						>
 							检查服务器暂存包
 						</button>
-						<button class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm disabled:opacity-40" disabled={!selectedPack || working} on:click={runImport}>
+						<button
+							class="px-3 py-2 rounded-md border border-gray-200 dark:border-gray-700 text-sm disabled:opacity-40"
+							disabled={!selectedPack || working}
+							on:click={runImport}
+						>
 							导入服务器暂存包
 						</button>
 					</div>
@@ -481,10 +529,16 @@
 			<section class="border border-red-200 dark:border-red-900 rounded-lg p-4 space-y-3">
 				<div>
 					<div class="text-sm font-medium text-red-600 dark:text-red-400">清空所有使用资料</div>
-					<div class="text-xs text-gray-500 mt-1">会先生成自动备份，再清空当前选择范围。需要输入固定确认文本。</div>
+					<div class="text-xs text-gray-500 mt-1">
+						会先生成自动备份，再清空当前选择范围。需要输入固定确认文本。
+					</div>
 				</div>
 				<div class="flex flex-wrap gap-2">
-					<button class="px-3 py-2 rounded-md border border-red-300 dark:border-red-800 text-sm disabled:opacity-40" disabled={working} on:click={runClearInspect}>
+					<button
+						class="px-3 py-2 rounded-md border border-red-300 dark:border-red-800 text-sm disabled:opacity-40"
+						disabled={working}
+						on:click={runClearInspect}
+					>
 						生成清空预览
 					</button>
 					<input
@@ -492,7 +546,11 @@
 						class="min-w-64 flex-1 bg-transparent border border-red-300 dark:border-red-800 rounded-md px-3 py-2 text-sm"
 						placeholder="请输入：清空所有使用资料"
 					/>
-					<button class="px-3 py-2 rounded-md bg-red-600 text-white text-sm disabled:opacity-40" disabled={working || !clearPreview} on:click={runClear}>
+					<button
+						class="px-3 py-2 rounded-md bg-red-600 text-white text-sm disabled:opacity-40"
+						disabled={working || !clearPreview}
+						on:click={runClear}
+					>
 						确认清空
 					</button>
 				</div>
@@ -507,7 +565,9 @@
 				{:else}
 					<div class="space-y-2">
 						{#each packs as pack}
-							<div class="flex flex-wrap items-center justify-between gap-2 border border-gray-100 dark:border-gray-800 rounded-md px-3 py-2">
+							<div
+								class="flex flex-wrap items-center justify-between gap-2 border border-gray-100 dark:border-gray-800 rounded-md px-3 py-2"
+							>
 								<div>
 									<div class="text-sm font-medium">{pack.name}</div>
 									<div class="text-xs text-gray-500">{countEntries(pack.manifest?.counts)}</div>
@@ -522,7 +582,10 @@
 									>
 										查看
 									</button>
-									<button class="text-xs px-2 py-1 rounded text-red-600 border border-red-200 dark:border-red-900" on:click={() => removePack(pack.name)}>
+									<button
+										class="text-xs px-2 py-1 rounded text-red-600 border border-red-200 dark:border-red-900"
+										on:click={() => removePack(pack.name)}
+									>
 										删除
 									</button>
 								</div>
@@ -536,9 +599,16 @@
 				<div class="text-sm font-medium mb-3">清单报告</div>
 				{#if lastReport}
 					{#if lastReport.counts}
-						<div class="text-sm text-gray-700 dark:text-gray-300 mb-3">{countEntries(lastReport.counts)}</div>
+						<div class="text-sm text-gray-700 dark:text-gray-300 mb-3">
+							{countEntries(lastReport.counts)}
+						</div>
 					{/if}
-					<pre class="text-xs whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md p-3 max-h-96">{JSON.stringify(lastReport, null, 2)}</pre>
+					<pre
+						class="text-xs whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md p-3 max-h-96">{JSON.stringify(
+							lastReport,
+							null,
+							2
+						)}</pre>
 				{:else}
 					<div class="text-sm text-gray-500">导出、检查、导入或清空后会在这里显示报告。</div>
 				{/if}

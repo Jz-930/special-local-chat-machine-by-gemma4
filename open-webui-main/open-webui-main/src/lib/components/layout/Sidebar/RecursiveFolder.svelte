@@ -510,9 +510,9 @@
 		<div class="w-full group">
 			<div
 				id="folder-{folderId}-button"
-				class="relative w-full py-1 px-1.5 rounded-xl flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-gray-900 transition {$selectedFolder?.id ===
+				class="gladia-sidebar-row relative w-full py-1 px-1.5 rounded-xl flex items-center gap-1.5 transition {$selectedFolder?.id ===
 				folderId
-					? 'bg-gray-100 dark:bg-gray-900 selected'
+					? 'gladia-sidebar-row--active selected'
 					: ''}"
 				on:dblclick={(e) => {
 					if (clickTimer) {
@@ -551,7 +551,7 @@
 				}}
 			>
 				<button
-					class="text-gray-500 dark:text-gray-500 transition-all p-1 hover:bg-gray-200 dark:hover:bg-gray-850 rounded-lg"
+					class="gladia-sidebar-menu-icon text-gray-500 transition-all"
 					on:click={(e) => {
 						e.stopPropagation();
 						e.stopImmediatePropagation();
@@ -632,7 +632,7 @@
 							showCreateSubFolderModal = true;
 						}}
 					>
-						<div class="p-1 dark:hover:bg-gray-850 rounded-lg touch-auto">
+						<div class="gladia-sidebar-menu-icon touch-auto">
 							<EllipsisHorizontal className="size-4" strokeWidth="2.5" />
 						</div>
 					</FolderMenu>
@@ -643,7 +643,7 @@
 		<div slot="content" class="w-full">
 			{#if (folders[folderId]?.childrenIds ?? []).length > 0 || (chats ?? []).length > 0}
 				<div
-					class="ml-3 pl-1 mt-[1px] flex flex-col overflow-y-auto scrollbar-hidden border-s border-gray-100 dark:border-gray-900"
+					class="ml-3 pl-1 mt-[1px] flex flex-col overflow-y-auto scrollbar-hidden border-s border-white/[0.06]"
 				>
 					{#if folders[folderId]?.childrenIds}
 						{@const children = folders[folderId]?.childrenIds

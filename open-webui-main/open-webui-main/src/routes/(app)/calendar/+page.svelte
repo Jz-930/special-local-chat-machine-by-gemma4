@@ -211,7 +211,7 @@
 
 <div
 	class="flex flex-col w-full h-screen max-h-[100dvh] transition-width duration-200 ease-in-out {$showSidebar
-		? 'md:max-w-[calc(100%-var(--sidebar-width))]'
+		? 'lg:max-w-[calc(100%-var(--sidebar-width))]'
 		: ''} max-w-full"
 >
 	{#if loaded}
@@ -219,7 +219,7 @@
 		<nav class="px-3 pt-2 pb-2 backdrop-blur-xl drag-region select-none shrink-0">
 			<div class="flex items-center gap-1">
 				{#if $mobile}
-					<div class="{$showSidebar ? 'md:hidden' : ''} flex flex-none items-center">
+					<div class="{$showSidebar ? 'lg:hidden' : ''} flex flex-none items-center">
 						<Tooltip
 							content={$showSidebar ? $i18n.t('Close Sidebar') : $i18n.t('Open Sidebar')}
 							interactive={true}

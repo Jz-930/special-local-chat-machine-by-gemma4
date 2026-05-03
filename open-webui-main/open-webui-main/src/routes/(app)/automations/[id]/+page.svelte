@@ -49,7 +49,7 @@
 {:else}
 	<div
 		class="w-full h-screen max-h-[100dvh] flex justify-center items-center transition-width duration-200 ease-in-out {$showSidebar
-			? 'md:max-w-[calc(100%-var(--sidebar-width))]'
+			? 'lg:max-w-[calc(100%-var(--sidebar-width))]'
 			: ''}"
 	>
 		<Spinner className="size-5" />

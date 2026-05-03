@@ -1156,11 +1156,11 @@
 
 {#if loaded}
 	<div class="w-full font-primary">
-		<div class=" mx-auto inset-x-0 bg-transparent flex justify-center">
+		<div class="mx-auto inset-x-0 bg-transparent flex justify-center chat-input-outer">
 			<div
-				class="flex flex-col px-3 {($settings?.widescreenMode ?? null)
-					? 'max-w-full'
-					: 'max-w-6xl'} w-full"
+				class="flex flex-col {($settings?.widescreenMode ?? null)
+					? 'chat-input-wide'
+					: 'chat-input-max'} w-full"
 			>
 				<div class="relative">
 					{#if autoScroll === false && history?.currentId}
@@ -1196,8 +1196,8 @@
 		<div class="bg-transparent">
 			<div
 				class="{($settings?.widescreenMode ?? null)
-					? 'max-w-full'
-					: 'max-w-6xl'} px-2.5 mx-auto inset-x-0"
+					? 'chat-input-wide'
+					: 'chat-input-max'} chat-input-outer mx-auto inset-x-0"
 			>
 				<div class="">
 					<input
@@ -1259,7 +1259,7 @@
 
 						<div
 							id="message-input-container"
-							class="flex-1 flex flex-col relative w-full shadow-2xl rounded-3xl border border-gray-200/20 dark:border-gray-700/30 transition-all duration-300 px-1 bg-white/40 dark:bg-black/40 backdrop-blur-xl hover:border-amber-500/30 focus-within:border-amber-500/50 focus-within:shadow-[0_0_20px_rgba(245,158,11,0.1)] dark:text-gray-100"
+							class="chat-input-shell chat-input-shell-responsive flex-1 flex flex-col relative w-full border border-white/[0.055] transition-all duration-300 px-1 bg-gray-950/95 backdrop-blur-xl hover:border-primary-300/15 focus-within:border-primary-300/20 dark:text-gray-100"
 							dir={$settings?.chatDirection ?? 'auto'}
 						>
 							{#if atSelectedModel !== undefined}
@@ -1386,7 +1386,7 @@
 
 							<div class="px-2.5">
 								<div
-									class="scrollbar-hidden rtl:text-right ltr:text-left bg-transparent dark:text-gray-100 outline-hidden w-full pb-1 px-1 resize-none h-fit max-h-96 overflow-auto {files.length ===
+									class="scrollbar-hidden relative rtl:text-right ltr:text-left bg-transparent dark:text-gray-100 outline-hidden w-full pb-1 px-1 resize-none h-fit max-h-96 overflow-auto {files.length ===
 									0
 										? atSelectedModel !== undefined
 											? 'pt-1.5'
@@ -1395,7 +1395,7 @@
 									id="chat-input-container"
 								>
 									{#if prompt.split('\n').length > 2}
-										<div class="fixed top-0 right-0 z-20">
+										<div class="absolute top-0 right-0 z-20">
 											<div class="mt-2.5 mr-3">
 												<button
 													type="button"
@@ -1417,6 +1417,7 @@
 												<RichTextInput
 													bind:this={chatInputElement}
 													id="chat-input"
+													className="input-prose min-h-fit h-full text-gray-100"
 													editable={!showInputModal}
 													onChange={(content) => {
 														prompt = content.md;
@@ -1580,14 +1581,27 @@
 								</div>
 							</div>
 
-							<div class=" flex justify-between mt-0.5 mb-2.5 mx-0.5 max-w-full" dir="ltr">
-								<div class="ml-1 self-end flex items-center flex-1 max-w-[80%]">
+							<div class="flex justify-between gap-1 mt-0.5 mb-2.5 mx-0.5 max-w-full" dir="ltr">
+								<div
+									class="ml-1 self-end flex items-center flex-1 min-w-0 overflow-x-auto scrollbar-none pr-1"
+								>
 									<!-- InputMenu removed for cleaner text-only writing workspace -->
 
+									<Tooltip content={$i18n.t('Upload Files')} placement="top">
+										<button
+											type="button"
+											class="input-orb-button"
+											aria-label={$i18n.t('Upload Files')}
+											on:click={() => {
+												filesInputElement?.click();
+											}}
+										>
+											<PlusAlt className="size-4" strokeWidth="1.75" />
+										</button>
+									</Tooltip>
+
 									{#if showWebSearchButton || showImageGenerationButton || showCodeInterpreterButton || showToolsButton || (toggleFilters && toggleFilters.length > 0)}
-										<div
-											class="flex self-center w-[1px] h-4 mx-1 bg-gray-200/50 dark:bg-gray-800/50"
-										/>
+										<div class="flex self-center w-[1px] h-4 mx-1.5 bg-white/10" />
 
 										<IntegrationsMenu
 											selectedModels={atSelectedModel ? [atSelectedModel.id] : selectedModels}
@@ -1615,10 +1629,7 @@
 												chatInput?.focus();
 											}}
 										>
-											<div
-												id="integration-menu-button"
-												class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden"
-											>
+											<div id="integration-menu-button" class="input-orb-button">
 												<Component className="size-4.5" strokeWidth="1.5" />
 											</div>
 										</IntegrationsMenu>
@@ -1630,7 +1641,7 @@
 												<button
 													type="button"
 													id="model-valves-button"
-													class="bg-transparent hover:bg-gray-100 text-gray-700 dark:text-white dark:hover:bg-gray-800 rounded-full size-8 flex justify-center items-center outline-hidden focus:outline-hidden"
+													class="input-orb-button"
 													on:click={() => {
 														selectedValvesType = 'function';
 														selectedValvesItemId = selectedModelIds[0]?.split('.')[0];
@@ -1643,7 +1654,7 @@
 										</div>
 									{/if}
 
-									<div class="ml-1 flex gap-1.5">
+									<div class="ml-1 flex gap-1.5 min-w-0 overflow-x-auto scrollbar-none">
 										{#if (selectedToolIds ?? []).length > 0}
 											<Tooltip
 												content={$i18n.t('{{COUNT}} Available Tools', {
@@ -1651,7 +1662,7 @@
 												})}
 											>
 												<button
-													class="translate-y-[0.5px] px-1 flex gap-1 items-center text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 rounded-lg self-center transition"
+													class="input-chip-button translate-y-[0.5px]"
 													aria-label="Available Tools"
 													type="button"
 													on:click={() => {
@@ -1691,8 +1702,8 @@
 														class="group p-[7px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {selectedFilterIds.includes(
 															filterId
 														)
-															? 'text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-600/10 border border-sky-200/40 dark:border-sky-500/20'
-															: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '} capitalize"
+															? 'text-primary-100 bg-primary-400/15 hover:bg-primary-400/20 border border-primary-300/25'
+															: 'bg-transparent text-gray-400 hover:text-gray-100 hover:bg-white/5 border border-transparent'} capitalize"
 													>
 														{#if filter?.icon}
 															<div class="size-4 items-center flex justify-center">
@@ -1734,8 +1745,8 @@
 													type="button"
 													class="group p-[7px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {webSearchEnabled ||
 													($settings?.webSearch ?? false) === 'always'
-														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-600/10 border border-sky-200/40 dark:border-sky-500/20'
-														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '}"
+														? ' text-primary-100 bg-primary-400/15 hover:bg-primary-400/20 border border-primary-300/25'
+														: 'bg-transparent text-gray-400 hover:text-gray-100 hover:bg-white/5 border border-transparent'}"
 												>
 													<GlobeAlt className="size-4" strokeWidth="1.75" />
 													<div class="hidden group-hover:block">
@@ -1752,8 +1763,8 @@
 														(imageGenerationEnabled = !imageGenerationEnabled)}
 													type="button"
 													class="group p-[7px] flex gap-1.5 items-center text-sm rounded-full transition-colors duration-300 focus:outline-hidden max-w-full overflow-hidden {imageGenerationEnabled
-														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-700/10 border border-sky-200/40 dark:border-sky-500/20'
-														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '}"
+														? ' text-primary-100 bg-primary-400/15 hover:bg-primary-400/20 border border-primary-300/25'
+														: 'bg-transparent text-gray-400 hover:text-gray-100 hover:bg-white/5 border border-transparent'}"
 												>
 													<Photo className="size-4" strokeWidth="1.75" />
 													<div class="hidden group-hover:block">
@@ -1774,8 +1785,8 @@
 														(codeInterpreterEnabled = !codeInterpreterEnabled)}
 													type="button"
 													class=" group p-[7px] flex gap-1.5 items-center text-sm transition-colors duration-300 max-w-full overflow-hidden {codeInterpreterEnabled
-														? ' text-sky-500 dark:text-sky-300 bg-sky-50 hover:bg-sky-100 dark:bg-sky-400/10 dark:hover:bg-sky-700/10 border border-sky-200/40 dark:border-sky-500/20'
-														: 'bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 '} {($settings?.highContrastMode ??
+														? ' text-primary-100 bg-primary-400/15 hover:bg-primary-400/20 border border-primary-300/25'
+														: 'bg-transparent text-gray-400 hover:text-gray-100 hover:bg-white/5 border border-transparent'} {($settings?.highContrastMode ??
 													false)
 														? 'm-1'
 														: 'focus:outline-hidden rounded-full'}"
@@ -1867,39 +1878,39 @@
 											<!-- Dictate voice button removed -->
 										{/if}
 
-											<div class=" flex items-center">
-												<Tooltip
-													content={uploadPending
-														? $i18n.t('Waiting for upload...')
-														: $i18n.t('Send message')}
+										<div class=" flex items-center">
+											<Tooltip
+												content={uploadPending
+													? $i18n.t('Waiting for upload...')
+													: $i18n.t('Send message')}
+											>
+												<button
+													id="send-message-button"
+													class="{!(prompt === '' && files.length === 0) || uploadPending
+														? 'bg-primary-200 text-gray-950 hover:bg-primary-100 shadow-[0_0_22px_rgba(111,76,255,0.32)] '
+														: 'text-gray-600 bg-white/[0.025] border border-white/[0.06] disabled'} transition rounded-full p-2 self-center"
+													type="submit"
+													disabled={(prompt === '' && files.length === 0) || uploadPending}
 												>
-													<button
-														id="send-message-button"
-														class="{!(prompt === '' && files.length === 0) || uploadPending
-															? 'bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-600 dark:text-gray-900 dark:hover:bg-amber-500 '
-															: 'text-white bg-gray-200 dark:text-gray-900 dark:bg-gray-700 disabled'} transition rounded-full p-1.5 self-center"
-														type="submit"
-														disabled={(prompt === '' && files.length === 0) || uploadPending}
-													>
-														{#if uploadPending}
-															<Spinner className="size-5" />
-														{:else}
-															<svg
-																xmlns="http://www.w3.org/2000/svg"
-																viewBox="0 0 16 16"
-																fill="currentColor"
-																class="size-5"
-															>
-																<path
-																	fill-rule="evenodd"
-																	d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z"
-																	clip-rule="evenodd"
-																/>
-															</svg>
-														{/if}
-													</button>
-												</Tooltip>
-											</div>
+													{#if uploadPending}
+														<Spinner className="size-5" />
+													{:else}
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															viewBox="0 0 16 16"
+															fill="currentColor"
+															class="size-5"
+														>
+															<path
+																fill-rule="evenodd"
+																d="M8 14a.75.75 0 0 1-.75-.75V4.56L4.03 7.78a.75.75 0 0 1-1.06-1.06l4.5-4.5a.75.75 0 0 1 1.06 0l4.5 4.5a.75.75 0 0 1-1.06 1.06L8.75 4.56v8.69A.75.75 0 0 1 8 14Z"
+																clip-rule="evenodd"
+															/>
+														</svg>
+													{/if}
+												</button>
+											</Tooltip>
+										</div>
 									{/if}
 								</div>
 							</div>
